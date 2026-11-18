@@ -38,7 +38,7 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/components/indice/Indice.tsx` — "Sumário" flutuante (índice com folhas, trava o scroll via `useScrollLock`) + aba de WhatsApp. Renderizado DEPOIS das seções (precisa do pin da leitura). No mobile some durante a Leitura guiada.
 - `src/components/encaminhamento/Encaminhamento.tsx` — fl. 07: termo de encaminhamento (formulário), carimbo "RECEBIDO" e fecho do documento.
 - `src/app/api/contato/route.ts` — recebe o formulário e repassa para `CONTACT_WEBHOOK_URL`. Sem essa variável responde 503 `not_configured` e o site avisa que o envio não está ativo (nunca finge sucesso).
-- `public/media/advogado.jpg` — foto do advogado (208×337, baixa resolução: exibida pequena e em P&B). `logo-monograma.png` — monograma extraído do logo original como máscara alfa; use sempre via `<Monograma>`/`<Assinatura>` (`src/components/doc/Logo.tsx`), que herdam a cor do texto. `src/app/icon.png` gerado a partir dele.
+- `public/media/advogado.jpg` — foto do advogado (208×337, baixa resolução: exibida pequena, em cor). `logo.jpg` — logo ORIGINAL do escritório (150×150, fundo azul igual ao `ink`), sem recolorir; use via `<Logo>` (`src/components/doc/Logo.tsx`) e não exiba acima de ~150px de altura. `src/app/icon.png` = o mesmo logo.
 - `public/media/escritorio.mp4` / `escritorio-poster.jpg` — luz de janela atravessando persiana sobre parede azul (gerado). Pode ser trocado por filmagem real do escritório (mantendo o lado esquerdo escuro para o título).
 
 ## Direção de arte

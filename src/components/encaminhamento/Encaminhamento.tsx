@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
 import { ESCRITORIO, FAIXAS_VALOR, WHATSAPP_URL } from "@/content/escritorio";
-import { Assinatura } from "@/components/doc/Logo";
+import { Logo } from "@/components/doc/Logo";
 
 /**
  * fl. 07 — Encaminhamento.
@@ -400,7 +400,7 @@ export function Encaminhamento() {
           </div>
 
           <div className="mt-16">
-            <Assinatura className="text-[17px] text-ink" />
+            <Logo className="h-28" />
           </div>
           <div className="mt-6 flex flex-col gap-6 border-t border-ink/15 pt-5 font-mono text-[11px] leading-relaxed text-ink-faint sm:flex-row sm:items-start sm:justify-between">
             <p className="max-w-[70ch]">

@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { FolhaHeader, revealFolha } from "@/components/doc/Folha";
-import { Monograma } from "@/components/doc/Logo";
+import { Logo } from "@/components/doc/Logo";
 import { ESCRITORIO, QUALIFICACAO, WHATSAPP_URL } from "@/content/escritorio";
 
 /**
@@ -90,7 +90,7 @@ export function Qualificacao() {
                 )}
               </div>
               <figcaption className="absolute bottom-4 left-3 right-3 flex justify-between font-mono text-[10px] text-ink-soft">
-                <span className="flex items-center gap-1.5"><Monograma className="h-3.5" />{ESCRITORIO.sigla}</span>
+                <span className="flex items-center gap-1.5"><Logo className="h-5" />{ESCRITORIO.sigla}</span>
                 <span>{ESCRITORIO.cidade}</span>
               </figcaption>
             </div>

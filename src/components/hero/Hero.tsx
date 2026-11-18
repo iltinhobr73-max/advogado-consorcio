@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
 import { ESCRITORIO, WHATSAPP_URL } from "@/content/escritorio";
-import { Assinatura } from "@/components/doc/Logo";
+import { Logo } from "@/components/doc/Logo";
 
 /**
  * fl. 01 — Hero.
@@ -124,7 +124,7 @@ export function Hero() {
         <div>
           <div className="flex items-center justify-between gap-4">
             <span data-hero-meta data-gsap-pending>
-              <Assinatura className="text-[13px] text-paper sm:text-sm" />
+              <Logo className="h-14 sm:h-[72px]" />
             </span>
             <span data-hero-meta data-gsap-pending className="hidden font-mono text-xs text-paper/65 md:inline">
               {ESCRITORIO.oabs.join("  ·  ")}
