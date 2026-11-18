@@ -13,6 +13,8 @@ import { CLAUSES, STOPS } from "@/content/contrato";
 
 const STAGGER = 0.2;
 const EASE_IN = "power3.out";
+// Toda saída dura pelo menos isso (segundos).
+const EXIT = 0.7;
 
 // Unidades de tempo da timeline da câmera (mapeadas no scroll do pin).
 const T_INTRO = 0.6; // contrato na mesa, antes do mergulho
@@ -129,16 +131,47 @@ export function LeituraGuiada() {
 
           gsap.set(doc, { transformOrigin: "0 0", transformPerspective: 2200, ...overview(false) });
 
-          /* ---------- Anotações: uma timeline em tempo real por parada ---------- */
-          const noteTls = notes.map((note) => {
-            const items = note.querySelectorAll("[data-note-item]");
-            gsap.set(note, { autoAlpha: 0 });
+          /* ---------- Painéis (notas + fecho): entrada e saída em tempo real ---------- */
+          type Panel = { el: HTMLElement; tl: gsap.core.Timeline; hide?: gsap.core.Tween };
+          const makePanel = (el: HTMLElement, items: Element[] | NodeListOf<Element>): Panel => {
+            gsap.set(el, { autoAlpha: 0 });
             gsap.set(items, { autoAlpha: 0, y: 26 });
-            return gsap
-              .timeline({ paused: true })
-              .set(note, { autoAlpha: 1 })
-              .to(items, { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE_IN, stagger: STAGGER });
-          });
+            return {
+              el,
+              tl: gsap
+                .timeline({ paused: true })
+                .fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: EASE_IN }, 0)
+                .to(items, { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE_IN, stagger: STAGGER }, 0.1),
+            };
+          };
+          // índices 0..STOPS.length-1 = notas; STOPS.length = fecho
+          const panels: Panel[] = [
+            ...notes.map((n) => makePanel(n, n.querySelectorAll("[data-note-item]"))),
+            makePanel(q("[data-outro]")[0], q("[data-outro-item]")),
+          ];
+
+          // Saída própria (não é a entrada rebobinada em 2×): o painel inteiro
+          // apaga em EXIT segundos e só então volta ao estado inicial.
+          let exitEndsAt = 0; // gsap.ticker.time em que a última saída termina
+          const hidePanel = (p: Panel) => {
+            p.tl.pause();
+            exitEndsAt = gsap.ticker.time + EXIT;
+            p.hide = gsap.to(p.el, {
+              autoAlpha: 0,
+              duration: EXIT,
+              ease: "power3.in",
+              onComplete: () => {
+                p.tl.pause(0);
+                gsap.set(p.el, { autoAlpha: 0 });
+              },
+            });
+          };
+          // A entrada espera a saída anterior terminar: um painel nunca atropela o outro.
+          const showPanel = (p: Panel) => {
+            p.hide?.kill();
+            const wait = Math.max(0, exitEndsAt - gsap.ticker.time);
+            p.tl.pause(0).delay(wait).restart(true);
+          };
 
           const markTls = marks.map((m) =>
             gsap.fromTo(
@@ -147,11 +180,6 @@ export function LeituraGuiada() {
               { backgroundSize: "100% 100%", duration: 0.9, ease: EASE_IN, paused: true },
             ),
           );
-
-          gsap.set(q("[data-outro-item]"), { autoAlpha: 0, y: 26 });
-          const outroTl = gsap
-            .timeline({ paused: true })
-            .to(q("[data-outro-item]"), { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE_IN, stagger: STAGGER });
 
           /* ---------- Intro: título entra quando a seção chega ---------- */
           gsap.set(q("[data-intro-item]"), { autoAlpha: 0, y: 26 });
@@ -177,10 +205,8 @@ export function LeituraGuiada() {
             if (next === active) return;
             const prev = active;
             active = next;
-            if (prev >= 0 && prev < noteTls.length) noteTls[prev].timeScale(2.2).reverse();
-            if (next >= 0 && next < noteTls.length) noteTls[next].timeScale(1).play();
-            if (next === STOPS.length) outroTl.timeScale(1).play();
-            else outroTl.timeScale(2).reverse();
+            if (prev >= 0) hidePanel(panels[prev]);
+            if (next >= 0) showPanel(panels[next]);
           };
 
           // Contador e réguas: quantas cláusulas a câmera já leu.
@@ -189,12 +215,12 @@ export function LeituraGuiada() {
             reached = n;
             if (counter) counter.textContent = String(n);
             ticks.forEach((t, i) =>
-              gsap.to(t, { scaleX: i < n ? 1 : 0, duration: 0.5, ease: EASE_IN, overwrite: true }),
+              gsap.to(t, { scaleX: i < n ? 1 : 0, duration: 0.8, ease: EASE_IN, overwrite: true }),
             );
           };
 
           const camera = gsap.timeline({
-            defaults: { ease: "power2.inOut" },
+            defaults: { ease: "power3.inOut" },
             onUpdate() {
               const t = camera.time();
               // Marcações ficam depois que a câmera passou por elas.
@@ -202,8 +228,8 @@ export function LeituraGuiada() {
                 const want = t >= h.start;
                 if (want !== markOn[i]) {
                   markOn[i] = want;
-                  if (want) markTls[i].timeScale(1).play();
-                  else markTls[i].timeScale(2).reverse();
+                  if (want) markTls[i].play();
+                  else markTls[i].reverse();
                 }
               });
               let next = -1;
@@ -235,7 +261,7 @@ export function LeituraGuiada() {
           camera.to({}, { duration: T_INTRO });
           camera.to(
             q("[data-intro]"),
-            { autoAlpha: 0, x: desktop ? -60 : 0, y: desktop ? 0 : -40, duration: T_TRAVEL * 0.6, ease: "power2.in" },
+            { autoAlpha: 0, x: desktop ? -60 : 0, y: desktop ? 0 : -40, duration: T_TRAVEL * 0.6, ease: "power3.in" },
             T_INTRO,
           );
 
@@ -249,7 +275,7 @@ export function LeituraGuiada() {
                 x: () => framing(i).x - (desktop ? 18 : 8),
                 y: () => framing(i).y - 6,
                 duration: T_HOLD,
-                ease: "none",
+                ease: "power3.inOut",
               },
               ">",
             );
@@ -264,12 +290,12 @@ export function LeituraGuiada() {
           camera.fromTo(
             q("[data-vignette]"),
             { autoAlpha: 0 },
-            { autoAlpha: 1, duration: T_TRAVEL, ease: "power1.out" },
+            { autoAlpha: 1, duration: T_TRAVEL, ease: "power3.out" },
             T_INTRO,
           );
           camera.to(
             q("[data-vignette]"),
-            { autoAlpha: 0, duration: T_OUTRO, ease: "power1.in" },
+            { autoAlpha: 0, duration: T_OUTRO, ease: "power3.in" },
             camera.duration() - T_OUTRO - T_END_HOLD,
           );
 

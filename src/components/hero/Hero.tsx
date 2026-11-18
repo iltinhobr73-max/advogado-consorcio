@@ -28,7 +28,10 @@ const VIDEO_ALPHA = 0.13;
 const HEADLINE = "Estava no contrato. Só não estava em destaque.";
 
 // Ritmo levemente irregular das tarjas — como alguém riscando à mão.
-const BAR_RHYTHM = [0, 0.11, 0.19, 0.42, 0.5, 0.6, 0.86, 0.97];
+// (Em segundos desde a primeira tarja.)
+const BAR_RHYTHM = [0, 0.18, 0.3, 0.68, 0.8, 0.96, 1.38, 1.55];
+// Quando cada linha começa a ser tarjada (para o número da linha acompanhar).
+const LINE_STARTS = [0, 0.68, 1.38];
 
 export function Hero() {
   const root = useRef<HTMLElement>(null);
@@ -79,70 +82,80 @@ export function Hero() {
           gsap.set(q("[data-footnote]"), { autoAlpha: 0 });
           gsap.set(q("[data-hero-continua]"), { autoAlpha: 0 });
 
-          const tl = gsap.timeline({ delay: 0.2 });
+          const tl = gsap.timeline({ delay: 0.3 });
 
           tl
-            // 1. Só o contrato rolando. Nenhuma palavra ainda.
-            .to(q("[data-hero-video]"), { autoAlpha: VIDEO_ALPHA, duration: 1.4, ease: "power1.out" }, 0)
+            // 1. Só o contrato rolando, aparecendo devagar. Nenhuma palavra ainda.
+            .to(q("[data-hero-video]"), { autoAlpha: VIDEO_ALPHA, duration: 2.4, ease: "power3.out" }, 0)
 
-            // 2. A frase é escrita... já censurada. Tarja por tarja.
+            // 2. A frase é escrita... já censurada. Tarja por tarja, cada uma
+            //    "pousando" em 0.6s, no ritmo irregular de quem risca à mão.
             .to(
               bars,
               {
                 scaleX: 1,
-                duration: 0.24,
-                ease: "power4.out",
-                stagger: (i) => BAR_RHYTHM[i] ?? i * 0.1,
+                duration: 0.6,
+                ease: "expo.out",
+                stagger: (i) => BAR_RHYTHM[i] ?? i * 0.2,
               },
-              0.7,
+              1.0,
             )
-            .to(q("[data-line-no]"), { autoAlpha: 1, duration: 0.01, stagger: 0.42 }, 0.7)
+            .to(
+              q("[data-line-no]"),
+              { autoAlpha: 1, duration: 0.6, ease: "power3.out", stagger: (i) => LINE_STARTS[i] ?? i },
+              1.0,
+            )
             // texto entra por baixo das tarjas, invisível ao leitor
-            .set(words, { autoAlpha: 1 }, 1.9)
+            .set(words, { autoAlpha: 1 }, 3.2)
 
-            // 3. Pausa. A frase existe, mas não se lê.
+            // 3. Pausa longa. A frase existe, mas não se lê.
             // 4. As tarjas recuam palavra a palavra.
-            .addLabel("reveal", 2.75)
+            .addLabel("reveal", 3.95)
             .to(
               redactBars,
               {
                 scaleX: 0,
                 transformOrigin: "100% 50%",
-                duration: 0.55,
-                ease: "expo.inOut",
-                stagger: 0.085,
+                duration: 0.9,
+                // power3 e não expo: a cauda da expo deixava a tarja parada
+                // como um filete de poucos px antes de sumir.
+                ease: "power3.inOut",
+                stagger: {
+                  each: 0.12,
+                  // A cauda da curva expo deixa um filete de poucos px por ~0.2s
+                  // antes de chegar a zero: abaixo de 3px, a tarja some de vez.
+                  onUpdate(this: gsap.core.Tween) {
+                    const bar = this.targets()[0] as HTMLElement;
+                    if (bar.getBoundingClientRect().width < 3) gsap.set(bar, { autoAlpha: 0 });
+                  },
+                },
               },
               "reveal",
             )
             // 5. A última tarja não some: vira marca-texto.
             .to(
               markerBars,
-              { backgroundColor: MARKER, duration: 0.35, ease: "power2.out", stagger: 0.06 },
-              "reveal+=0.75",
+              { backgroundColor: MARKER, duration: 0.6, ease: "power3.out", stagger: 0.1 },
+              "reveal+=1.0",
             )
             .to(
               markerBars,
-              {
-                top: "0.5em",
-                duration: 0.8,
-                ease: "expo.out",
-                stagger: 0.06,
-              },
-              "reveal+=0.95",
+              { top: "0.5em", duration: 1.0, ease: "expo.out", stagger: 0.1 },
+              "reveal+=1.35",
             )
-            .to(q("[data-footnote]"), { autoAlpha: 1, duration: 0.01 }, "reveal+=1.45")
+            .to(q("[data-footnote]"), { autoAlpha: 1, duration: 0.6, ease: "power3.out" }, "reveal+=2.0")
 
             // 6. O documento se completa em volta.
-            .to(q("[data-hero-rule]"), { scaleX: 1, duration: 1.1, ease: "expo.inOut" }, "reveal+=1.1")
-            .to(q("[data-hero-meta]"), { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out", stagger: 0.08 }, "reveal+=1.5")
-            .to(q("[data-hero-fade]"), { autoAlpha: 1, y: 0, duration: 0.8, ease: "power3.out", stagger: 0.1 }, "reveal+=1.6")
-            .to(q("[data-hero-continua]"), { autoAlpha: 1, duration: 0.6 }, "reveal+=2.1");
+            .to(q("[data-hero-rule]"), { scaleX: 1, duration: 1.4, ease: "expo.inOut" }, "reveal+=1.6")
+            .to(q("[data-hero-meta]"), { autoAlpha: 1, y: 0, duration: 0.9, ease: "power3.out", stagger: 0.12 }, "reveal+=2.2")
+            .to(q("[data-hero-fade]"), { autoAlpha: 1, y: 0, duration: 1.0, ease: "power3.out", stagger: 0.15 }, "reveal+=2.4")
+            .to(q("[data-hero-continua]"), { autoAlpha: 1, duration: 0.9, ease: "power3.out" }, "reveal+=3.0");
 
-          // Seta do "(continua)" cutucando para baixo.
+          // Seta do "(continua)" cutucando para baixo — devagar.
           gsap.to(q("[data-continua-arrow]"), {
             y: 5,
-            duration: 0.7,
-            ease: "sine.inOut",
+            duration: 1.1,
+            ease: "power3.inOut",
             yoyo: true,
             repeat: -1,
           });
@@ -153,14 +166,14 @@ export function Hero() {
           gsap.to(q("[data-hero-continua-inner]"), {
             autoAlpha: 0,
             y: 12,
-            ease: "none",
+            ease: "power3.out",
             scrollTrigger: { trigger: root.current, start: "top top", end: "+=140", scrub: true },
           });
           // O contrato continua rolando mais rápido que a página.
-          gsap.to(q("[data-hero-video-wrap]"), { yPercent: -22, ease: "none", scrollTrigger: st });
+          gsap.to(q("[data-hero-video-wrap]"), { yPercent: -22, ease: "power3.inOut", scrollTrigger: st });
           // Linhas do título se separam levemente — o documento "abre".
           q("[data-hero-line]").forEach((line, i) => {
-            gsap.to(line, { y: -40 * (i + 1), ease: "none", scrollTrigger: st });
+            gsap.to(line, { y: -40 * (i + 1), ease: "power3.inOut", scrollTrigger: st });
           });
         },
       );

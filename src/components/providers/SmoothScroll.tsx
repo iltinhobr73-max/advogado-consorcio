@@ -49,7 +49,12 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
   const scrollTo = useCallback<ScrollToFn>((target, options) => {
     const lenis = lenisRef.current;
     if (lenis) {
-      lenis.scrollTo(target, { offset: options?.offset ?? 0, duration: 1.4 });
+      lenis.scrollTo(target, {
+        offset: options?.offset ?? 0,
+        duration: 1.6,
+        // expo.out explícito (mesma curva do GSAP), em vez do padrão implícito do Lenis.
+        easing: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+      });
       return;
     }
     // Fallback sem Lenis (reduced motion): salto direto, sem suavização.
