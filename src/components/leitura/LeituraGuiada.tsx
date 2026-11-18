@@ -3,37 +3,30 @@
 import { useRef } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
-import { CLAUSES, STOPS } from "@/content/contrato";
+import { STOPS } from "@/content/contrato";
 
 /**
- * fl. 02 — Leitura guiada: "a letra miúda, em letra graúda".
+ * fl. 02 — Leitura guiada: a pilha de cláusulas.
  *
- * Seção fixada (pin). Uma câmera faz um travelling horizontal por 6 planos:
- * abertura → 4 cláusulas → fecho. Em cada cláusula, a frase aparece em
- * letra miúda (mono) e o trecho problemático em tipografia gigante, que o
- * marca-texto atravessa.
+ * Seção fixada (pin). Ao rolar, cada cláusula chega como uma folha que
+ * desliza de baixo e pousa sobre a anterior; as de baixo recuam e escurecem,
+ * como documentos se acumulando na mesa. A "câmera" acompanha: recua de
+ * leve enquanto a folha está no ar e volta quando ela pousa.
  *
- * Câmera = timeline com scrub suavizado: entre planos ela recua de leve e
- * volta (dolly) e o numeral gigante de cada plano corre em outra
- * velocidade (profundidade). Conteúdo de cada plano = timeline em tempo
- * real (stagger 0.2, power3.out) disparada quando a câmera chega.
- *
- * Trilho com 6 planos: largura 600% e cada plano 1/6 (classes literais —
- * o Tailwind só gera classes escritas por extenso). Mudou o nº de planos?
- * Ajuste w-[600%] e w-1/6.
+ * Câmera e folhas = timeline com scrub suavizado. Conteúdo de cada folha =
+ * timeline em tempo real (stagger 0.2, power3.out) disparada quando ela pousa.
  */
 
 const STAGGER = 0.2;
 const EASE_IN = "power3.out";
-const INK = "#0e0e0d";
-const PAPER = "#f5f2eb";
 
-// Unidades de tempo da timeline da câmera (mapeadas no scroll do pin).
-const T_OPEN = 0.9; // plano de abertura parado
-const T_TRAVEL = 1.1; // travelling entre planos
-const T_HOLD = 1.25; // câmera parada num plano
-const T_END = 0.6;
+// Unidades de tempo da timeline (mapeadas no scroll do pin).
+const T_OPEN = 0.7;
+const T_DROP = 1.1; // folha deslizando até pousar
+const T_HOLD = 1.3; // folha pousada, sendo lida
+const T_END = 1.0;
 
+const TILT = [-2.2, 1.6, -1.1, 2.4]; // ângulo de pouso de cada folha (mão, não máquina)
 const ORD = ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "7ª", "8ª", "9ª", "10ª", "11ª"];
 
 export function LeituraGuiada() {
@@ -45,12 +38,8 @@ export function LeituraGuiada() {
       const q = gsap.utils.selector(root);
       const section = root.current!;
       const stage = q("[data-stage]")[0] as HTMLElement;
-      const mm = gsap.matchMedia();
 
-      // Seta do "role" cutucando para a direita.
-      gsap.to(q("[data-nudge]"), { x: 8, duration: 1.1, ease: "power3.inOut", yoyo: true, repeat: -1 });
-
-      mm.add(
+      gsap.matchMedia().add(
         {
           motion: "(prefers-reduced-motion: no-preference)",
           reduce: "(prefers-reduced-motion: reduce)",
@@ -59,7 +48,6 @@ export function LeituraGuiada() {
         (ctx) => {
           const { reduce, desktop } = ctx.conditions as { reduce: boolean; desktop: boolean };
           gsap.set(q("[data-gsap-pending]"), { autoAlpha: 1 });
-
           if (reduce) {
             section.dataset.mode = "static";
             return;
@@ -67,35 +55,40 @@ export function LeituraGuiada() {
           section.dataset.mode = "camera";
 
           const camera = q("[data-camera]")[0];
-          const track = q("[data-track]")[0];
-          const panels = q("[data-panel]") as HTMLElement[];
-          const depths = panels.map((p) => p.querySelector("[data-depth]"));
-          const W = () => stage.clientWidth;
+          const cards = q("[data-card]") as HTMLElement[];
+          const shades = cards.map((c) => c.querySelector("[data-shade]"));
+          const H = () => stage.clientHeight;
 
-          /* ---------- Conteúdo de cada plano (tempo real) ---------- */
-          const panelTls = panels.map((panel) => {
-            const items = panel.querySelectorAll("[data-pi]");
-            const marks = panel.querySelectorAll("[data-mark]");
-            gsap.set(items, { autoAlpha: 0, y: 30 });
-            gsap.set(marks, { backgroundSize: "0% 100%", color: PAPER });
+          /* ---------- Abertura (coluna da esquerda) ---------- */
+          gsap.set(q("[data-intro]"), { autoAlpha: 0, y: 26 });
+          gsap.to(q("[data-intro]"), {
+            autoAlpha: 1,
+            y: 0,
+            duration: 0.8,
+            ease: EASE_IN,
+            stagger: STAGGER,
+            scrollTrigger: { trigger: section, start: "top 65%", toggleActions: "play none none reverse" },
+          });
+
+          /* ---------- Conteúdo de cada folha (tempo real) ---------- */
+          const cardTls = cards.map((card) => {
+            const items = card.querySelectorAll("[data-ci]");
+            const marks = card.querySelectorAll("[data-mark]");
+            gsap.set(items, { autoAlpha: 0, y: 18 });
+            gsap.set(marks, { backgroundSize: "0% 100%" });
             return gsap
               .timeline({ paused: true })
-              .to(items, { autoAlpha: 1, y: 0, duration: 0.9, ease: EASE_IN, stagger: STAGGER })
-              // o marca-texto atravessa a frase gigante; a tinta escurece junto
-              .to(marks, { backgroundSize: "100% 100%", color: INK, duration: 1.0, ease: EASE_IN, stagger: STAGGER }, 0.6);
+              .to(items, { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE_IN, stagger: STAGGER })
+              .to(marks, { backgroundSize: "100% 100%", duration: 1.0, ease: EASE_IN }, 0.4);
           });
-          const shown = panels.map(() => false);
+          const shown = cards.map(() => false);
           const setShown = (i: number, on: boolean) => {
             if (shown[i] === on) return;
             shown[i] = on;
-            const tl = panelTls[i];
-            if (on) {
-              tl.play(0);
-              return;
-            }
-            // saída própria: some em 0.7s (não é a entrada rebobinada acelerada)
+            const tl = cardTls[i];
+            if (on) return void tl.play(0);
             tl.pause();
-            gsap.to(panels[i].querySelectorAll("[data-pi]"), {
+            gsap.to(cards[i].querySelectorAll("[data-ci]"), {
               autoAlpha: 0,
               duration: 0.7,
               ease: "power3.in",
@@ -106,67 +99,95 @@ export function LeituraGuiada() {
             });
           };
 
-          // Abertura: entra quando a seção chega na tela.
-          ScrollTrigger.create({
-            trigger: section,
-            start: "top 65%",
-            onEnter: () => setShown(0, true),
-            onLeaveBack: () => setShown(0, false),
-          });
-
-          /* ---------- Cabeçalho: contador e réguas ---------- */
+          /* ---------- Índice da esquerda + contador ---------- */
+          const idx = q("[data-idx]");
           const counter = q("[data-counter]")[0];
           const ticks = q("[data-tick]");
           gsap.set(ticks, { scaleX: 0, transformOrigin: "0% 50%" });
-          let reached = -1;
-          const setReached = (n: number) => {
-            if (n === reached) return;
-            reached = n;
-            if (counter) counter.textContent = String(n);
-            ticks.forEach((t, i) =>
-              gsap.to(t, { scaleX: i < n ? 1 : 0, duration: 0.8, ease: EASE_IN, overwrite: true }),
+          gsap.set(q("[data-outro]"), { autoAlpha: 0, y: 26 });
+          let active = -2;
+          let outroOn = false;
+          const setActive = (n: number) => {
+            if (n === active) return;
+            active = n;
+            if (counter) counter.textContent = String(n + 1);
+            idx.forEach((el, k) =>
+              gsap.to(el, {
+                opacity: k === n ? 1 : k < n ? 0.55 : 0.28,
+                x: k === n ? 10 : 0,
+                duration: 0.7,
+                ease: "power3.inOut",
+                overwrite: true,
+              }),
+            );
+            ticks.forEach((t, k) =>
+              gsap.to(t, { scaleX: k <= n ? 1 : 0, duration: 0.8, ease: EASE_IN, overwrite: true }),
             );
           };
+          const setOutro = (on: boolean) => {
+            if (on === outroOn) return;
+            outroOn = on;
+            gsap.to(q("[data-outro]"), {
+              autoAlpha: on ? 1 : 0,
+              y: on ? 0 : 26,
+              duration: on ? 0.8 : 0.7,
+              ease: on ? EASE_IN : "power3.in",
+              stagger: on ? STAGGER : 0,
+              overwrite: true,
+            });
+          };
 
-          /* ---------- Câmera ---------- */
-          const arrivals: number[] = [0]; // tempo em que a câmera chega a cada plano
-          gsap.set(track, { x: 0 });
-          gsap.set(camera, { scale: 1, transformOrigin: "50% 50%" });
+          /* ---------- A pilha ---------- */
+          cards.forEach((card, i) =>
+            gsap.set(card, { y: () => H() * 1.05, rotation: TILT[i] * 3, transformOrigin: "50% 100%" }),
+          );
+          gsap.set(shades, { opacity: 0 });
+          gsap.set(camera, { scale: 1, transformOrigin: "50% 60%" });
 
-          const cam = gsap.timeline({
+          const landings: number[] = [];
+          const tl = gsap.timeline({
             defaults: { ease: "power3.inOut" },
             onUpdate() {
-              const t = cam.time();
-              arrivals.forEach((a, i) => i > 0 && setShown(i, t >= a - 0.08));
-              setReached(arrivals.slice(1, STOPS.length + 1).filter((a) => t >= a - 0.08).length);
+              const t = tl.time();
+              let n = -1;
+              landings.forEach((l, i) => {
+                const on = t >= l - 0.06;
+                setShown(i, on);
+                if (on) n = i;
+              });
+              setActive(n);
+              setOutro(t >= tl.duration() - T_END + 0.2);
             },
             scrollTrigger: {
               trigger: section,
               start: "top top",
               // altura do palco (100svh): estável no celular. Sem anticipatePin (ver CLAUDE.md).
-              end: () => "+=" + stage.clientHeight * (desktop ? 6.5 : 5.5),
+              end: () => "+=" + stage.clientHeight * (desktop ? 5 : 4.6),
               pin: true,
               scrub: 1.1,
               invalidateOnRefresh: true,
             },
           });
 
-          cam.to({}, { duration: T_OPEN });
-          for (let i = 1; i < panels.length; i++) {
-            const at = cam.duration();
-            // travelling lateral
-            cam.to(track, { x: () => -W() * i, duration: T_TRAVEL }, at);
-            // dolly: a câmera recua no meio do movimento e volta ao chegar
-            cam.to(camera, { scale: desktop ? 0.86 : 0.92, duration: T_TRAVEL / 2, ease: "power3.out" }, at);
-            cam.to(camera, { scale: 1, duration: T_TRAVEL / 2, ease: "power3.in" }, at + T_TRAVEL / 2);
-            // profundidade: o numeral do plano que chega e o do que sai correm em outra velocidade
-            if (depths[i]) cam.fromTo(depths[i], { x: () => W() * 0.45 }, { x: 0, duration: T_TRAVEL, immediateRender: true }, at);
-            if (depths[i - 1]) cam.to(depths[i - 1], { x: () => -W() * 0.45, duration: T_TRAVEL }, at);
-            arrivals.push(at + T_TRAVEL);
-            // parada com respiração: a câmera avança um pouco, nunca fica totalmente morta
-            cam.to(camera, { scale: 1.025, duration: T_HOLD }, at + T_TRAVEL);
-          }
-          cam.to({}, { duration: T_END });
+          tl.to({}, { duration: T_OPEN });
+          cards.forEach((card, i) => {
+            const at = tl.duration();
+            // a folha desliza e pousa, girando até o ângulo final
+            tl.to(card, { y: 0, rotation: TILT[i], duration: T_DROP, ease: "power3.out" }, at);
+            // as de baixo recuam e escurecem
+            for (let j = 0; j < i; j++) {
+              const d = i - j;
+              tl.to(cards[j], { y: -(desktop ? 26 : 18) * d, scale: 1 - 0.055 * d, duration: T_DROP }, at);
+              tl.to(shades[j], { opacity: Math.min(0.62, 0.24 * d), duration: T_DROP }, at);
+            }
+            // câmera: recua enquanto a folha está no ar, volta quando pousa
+            tl.to(camera, { scale: 0.95, duration: T_DROP / 2, ease: "power3.out" }, at);
+            tl.to(camera, { scale: 1, duration: T_DROP / 2, ease: "power3.in" }, at + T_DROP / 2);
+            landings.push(at + T_DROP * 0.85);
+            tl.to({}, { duration: T_HOLD });
+          });
+          // fecho: a pilha se ajeita e se afasta um pouco
+          tl.to(camera, { scale: 0.92, duration: T_END, ease: "power3.inOut" });
 
           ScrollTrigger.refresh();
           return () => {
@@ -183,220 +204,148 @@ export function LeituraGuiada() {
       ref={root}
       id="leitura"
       aria-labelledby="leitura-titulo"
-      className="group/leitura relative bg-ink text-paper"
+      className="group/leitura relative bg-ink-2 text-paper"
     >
-      <div data-stage className="relative w-full overflow-hidden group-data-[mode=camera]/leitura:h-svh">
-        {/* Mesa escura com luz */}
+      <div data-stage className="relative flex w-full flex-col overflow-hidden group-data-[mode=camera]/leitura:h-svh">
+        {/* luz sobre a mesa */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_75%_at_50%_45%,#24231f_0%,#121211_60%,#0a0a09_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_68%_55%,#1f4258_0%,#142f40_45%,#0b1d29_100%)]"
         />
 
         {/* ---------- Cabeçalho ---------- */}
-        <div className="pointer-events-none relative z-20">
-          <div className="mx-auto max-w-[1680px] px-4 pt-5 font-mono text-[11px] leading-none text-paper/60 sm:px-8 sm:text-xs lg:px-12">
-            <div className="flex items-baseline justify-between gap-4">
-              <span>Leitura guiada</span>
-              <span className="flex items-center gap-3">
-                <span className="hidden gap-1 sm:group-data-[mode=camera]/leitura:flex" aria-hidden>
-                  {STOPS.map((s) => (
-                    <span key={s.n} className="relative block h-px w-6 bg-paper/25">
-                      <span data-tick className="absolute inset-0 bg-marker" />
-                    </span>
-                  ))}
-                </span>
-                <span className="hidden group-data-[mode=camera]/leitura:inline">
-                  cláusula <span data-counter>0</span>/{STOPS.length}
-                </span>
+        <div className="relative z-20 mx-auto w-full max-w-[1680px] px-4 pt-5 font-mono text-[11px] leading-none text-paper/65 sm:px-8 sm:text-xs lg:px-12">
+          <div className="flex items-baseline justify-between gap-4">
+            <span>Leitura guiada</span>
+            <span className="flex items-center gap-3">
+              <span className="hidden gap-1 sm:group-data-[mode=camera]/leitura:flex" aria-hidden>
+                {STOPS.map((s) => (
+                  <span key={s.n} className="relative block h-px w-6 bg-paper/25">
+                    <span data-tick className="absolute inset-0 bg-marker" />
+                  </span>
+                ))}
               </span>
-              <span>fl. 02</span>
-            </div>
-            <div className="mt-3 h-px w-full bg-paper/50" />
+              <span className="hidden group-data-[mode=camera]/leitura:inline">
+                cláusula <span data-counter>0</span>/{STOPS.length}
+              </span>
+            </span>
+            <span>fl. 02</span>
           </div>
+          <div className="mt-3 h-px w-full bg-marker/60" />
         </div>
 
-        {/* ---------- Câmera → trilho de 6 planos ---------- */}
-        <div
-          data-camera
-          className="relative group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-0"
-        >
-          <div
-            data-track
-            className="flex flex-col group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-[600%] group-data-[mode=camera]/leitura:flex-row"
-          >
-            {/* Plano 0 — abertura */}
-            <article
-              data-panel
-              className="relative w-full shrink-0 overflow-hidden group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-1/6"
+        <div className="relative mx-auto grid w-full max-w-[1680px] flex-1 gap-8 px-4 pb-10 pt-8 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:pb-12 lg:pt-12 group-data-[mode=camera]/leitura:min-h-0 group-data-[mode=camera]/leitura:grid-rows-[auto_1fr] lg:group-data-[mode=camera]/leitura:grid-rows-1">
+          {/* ---------- Coluna da esquerda ---------- */}
+          <div className="flex flex-col lg:col-span-4 lg:justify-center">
+            <p data-intro data-gsap-pending className="font-mono text-xs text-paper/65 sm:text-sm">
+              Um contrato de consórcio comum. Onze cláusulas.
+            </p>
+            <h2
+              id="leitura-titulo"
+              data-intro
+              data-gsap-pending
+              className="font-display mt-3 text-[clamp(2.2rem,9.5vw,3.4rem)] leading-[0.9] lg:mt-4 lg:text-[clamp(3rem,4.6vw,5.6rem)]"
             >
-              <div className="mx-auto grid h-full max-w-[1680px] content-center gap-10 px-4 pb-16 pt-14 sm:px-8 lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:pb-12 lg:pt-20">
-                <div className="lg:col-span-6">
-                  <p data-pi data-gsap-pending className="font-mono text-xs text-paper/60 sm:text-sm">
-                    Um contrato de consórcio comum. Onze cláusulas.
-                  </p>
-                  <h2
-                    id="leitura-titulo"
-                    data-pi
-                    data-gsap-pending
-                    className="font-display mt-4 text-[clamp(2.7rem,11.5vw,4.4rem)] leading-[0.88] lg:text-[clamp(3.6rem,6.4vw,8rem)]"
-                  >
-                    Quatro delas <span className="bg-marker px-[0.06em] text-ink">pesam</span> no seu bolso.
-                  </h2>
-                  <p
-                    data-pi
-                    data-gsap-pending
-                    className="mt-8 hidden items-center gap-3 font-mono text-xs text-paper/70 sm:text-sm group-data-[mode=camera]/leitura:flex"
-                  >
-                    Role para ler, cláusula por cláusula
-                    <span data-nudge aria-hidden className="inline-block">→</span>
-                  </p>
-                </div>
-                {/* A letra miúda: o contrato inteiro, pequeno de propósito */}
-                <div
-                  data-pi
+              Quatro delas <span className="text-marker">pesam</span> no seu bolso.
+            </h2>
+
+            <ol className="mt-10 hidden space-y-3 lg:block">
+              {STOPS.map((c, i) => (
+                <li
+                  key={c.n}
+                  data-intro
                   data-gsap-pending
-                  aria-hidden
-                  className="relative max-h-[34svh] overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)] lg:col-span-5 lg:col-start-8 lg:max-h-[64svh]"
+                  className="border-b border-paper/15 pb-3"
                 >
-                  <div className="columns-2 gap-5 text-justify font-mono text-[8.5px] leading-[1.55] text-paper/40 lg:gap-6 lg:text-[9.5px]">
-                    {CLAUSES.map((c) => (
-                      <p key={c.n} className="mb-2.5">
-                        <span className="text-paper/70">
-                          CLÁUSULA {ORD[c.n - 1]} — {c.heading.toUpperCase()}.{" "}
-                        </span>
-                        {c.before}
-                        {c.mark && (
-                          <span className="text-paper underline decoration-marker decoration-2 underline-offset-2">
-                            {c.mark}
-                          </span>
-                        )}
-                        {c.after}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </article>
+                  <span data-idx className="flex items-baseline gap-4 text-lg font-semibold [font-stretch:88%]">
+                    <span className="font-mono text-xs font-normal tabular-nums text-marker">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {c.stop!.title}
+                  </span>
+                </li>
+              ))}
+            </ol>
 
-            {/* Planos 1–4 — as cláusulas */}
-            {STOPS.map((c, i) => (
-              <article
-                key={c.n}
-                data-panel
-                aria-label={`Cláusula ${c.n}: ${c.stop!.title}`}
-                className="relative w-full shrink-0 overflow-hidden border-t border-paper/10 group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-1/6 group-data-[mode=camera]/leitura:border-t-0"
+            {/* fecho */}
+            <div className="mt-8 hidden lg:block">
+              <p data-outro data-gsap-pending className="font-display text-[clamp(1.8rem,2.4vw,2.6rem)] leading-[0.95]">
+                Quantas estão <span className="text-marker">no seu?</span>
+              </p>
+              <a
+                data-outro
+                data-gsap-pending
+                href="#contato"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollTo("#contato");
+                }}
+                className="group mt-5 flex max-w-sm items-stretch bg-marker text-ink outline-offset-4 focus-visible:outline-2 focus-visible:outline-marker"
               >
-                {/* numeral gigante ao fundo (camada de profundidade) */}
-                <span
-                  data-depth
-                  aria-hidden
-                  className="font-display pointer-events-none absolute -bottom-[0.16em] -right-[0.03em] select-none text-[64vw] leading-none text-paper/[0.05] lg:text-[40vw]"
-                >
-                  {ORD[c.n - 1]}
+                <span className="flex-1 px-5 py-3.5 text-[15px] font-semibold [font-stretch:88%]">
+                  Enviar meu contrato para análise
                 </span>
+                <span className="grid w-14 place-items-center border-l border-ink/15 transition-colors group-hover:bg-marker-2">
+                  →
+                </span>
+              </a>
+            </div>
+          </div>
 
-                <div className="relative mx-auto grid h-full max-w-[1680px] content-center gap-8 px-4 pb-20 pt-16 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:pb-12 lg:pt-20">
-                  <div className="lg:col-span-7">
-                    <p data-pi data-gsap-pending className="flex items-baseline gap-3 font-mono text-xs text-paper/60">
-                      <span className="tabular-nums text-marker">{String(i + 1).padStart(2, "0")}</span>
-                      Cláusula {ORD[c.n - 1]} — {c.heading}
-                    </p>
-                    {/* a letra miúda */}
-                    <p
-                      data-pi
-                      data-gsap-pending
-                      className="mt-4 max-w-[62ch] font-mono text-[10.5px] leading-[1.6] text-paper/45 sm:text-xs lg:mt-5"
-                    >
-                      {c.before}
-                      <span className="text-paper/85">{c.mark}</span>
-                      {c.after}
-                    </p>
-                    {/* …em letra graúda */}
-                    <blockquote
-                      data-pi
-                      data-gsap-pending
-                      className="font-display mt-6 text-[clamp(1.85rem,8.2vw,3rem)] leading-[1.04] lg:mt-10 lg:text-[clamp(2.6rem,4.2vw,5.2rem)] lg:leading-[1]"
-                    >
-                      “
+          {/* ---------- A pilha ---------- */}
+          <div
+            data-camera
+            className="relative lg:col-span-7 lg:col-start-6 group-data-[mode=camera]/leitura:min-h-0"
+          >
+            <div className="flex flex-col gap-6 group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-0 group-data-[mode=camera]/leitura:block">
+              {STOPS.map((c, i) => (
+                <article
+                  key={c.n}
+                  data-card
+                  aria-label={`Cláusula ${c.n}: ${c.stop!.title}`}
+                  className="w-full bg-paper text-ink shadow-[0_2px_0_rgba(0,0,0,0.15),0_40px_80px_-24px_rgba(5,15,22,0.75)] group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:bottom-[6%] lg:group-data-[mode=camera]/leitura:bottom-[10%] lg:group-data-[mode=camera]/leitura:left-[4%] lg:group-data-[mode=camera]/leitura:right-[4%]"
+                >
+                  <div className="relative px-5 pb-6 pt-5 sm:px-9 sm:pb-9 sm:pt-7">
+                    <div data-ci data-gsap-pending className="flex items-baseline justify-between gap-4 border-b border-ink/20 pb-3 font-mono text-[11px] text-ink-soft sm:text-xs">
+                      <span>
+                        <span className="text-ink">{String(i + 1).padStart(2, "0")}</span> · Cláusula {ORD[c.n - 1]}
+                      </span>
+                      <span className="text-right">{c.heading}</span>
+                    </div>
+
+                    <p data-ci data-gsap-pending className="mt-5 text-[17px] leading-[1.55] sm:mt-6 sm:text-[22px] sm:leading-[1.5]">
+                      <span className="hidden sm:inline">{c.before}</span>
+                      <span className="sm:hidden">…</span>
                       <span
                         data-mark
-                        className="bg-[linear-gradient(var(--color-marker),var(--color-marker))] bg-no-repeat px-[0.06em] text-ink [-webkit-box-decoration-break:clone] [background-size:100%_100%] [box-decoration-break:clone]"
+                        className="bg-[linear-gradient(transparent_50%,var(--color-marker)_50%,var(--color-marker)_92%,transparent_92%)] bg-no-repeat [-webkit-box-decoration-break:clone] [background-size:100%_100%] [box-decoration-break:clone]"
                       >
                         {c.mark}
                       </span>
-                      ”
-                    </blockquote>
-                  </div>
-
-                  <div className="lg:col-span-4 lg:col-start-9 lg:self-end">
-                    <span data-pi data-gsap-pending className="block h-px w-full bg-paper/30" />
-                    <h3
-                      data-pi
-                      data-gsap-pending
-                      className="font-display mt-4 text-[1.9rem] leading-[0.92] lg:mt-5 lg:text-[clamp(2.2rem,2.9vw,3.4rem)]"
-                    >
-                      {c.stop!.title}
-                    </h3>
-                    <p data-pi data-gsap-pending className="mt-3 text-[15px] leading-snug text-paper/90 lg:mt-4 lg:text-lg">
-                      {c.stop!.body}
+                      <span className="hidden sm:inline">{c.after}</span>
+                      <span className="sm:hidden">…</span>
                     </p>
-                    <p data-pi data-gsap-pending className="mt-3 font-mono text-[11px] text-paper/55 lg:mt-4 lg:text-xs">
-                      ↳ {c.stop!.ref}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
 
-            {/* Plano 5 — fecho */}
-            <article
-              data-panel
-              className="relative w-full shrink-0 overflow-hidden border-t border-paper/10 group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-1/6 group-data-[mode=camera]/leitura:border-t-0"
-            >
-              <div className="mx-auto grid h-full max-w-[1680px] content-center gap-10 px-4 pb-20 pt-16 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:pb-12 lg:pt-20">
-                <div className="lg:col-span-7">
-                  <p data-pi data-gsap-pending className="font-mono text-xs text-paper/60 sm:text-sm">
-                    Quatro marcações em um contrato padrão.
-                  </p>
-                  <p
-                    data-pi
-                    data-gsap-pending
-                    className="font-display mt-4 text-[clamp(2.7rem,11.5vw,4.4rem)] leading-[0.88] lg:text-[clamp(3.6rem,6.4vw,8rem)]"
-                  >
-                    Quantas estão <span className="whitespace-nowrap bg-marker px-[0.06em] text-ink">no seu?</span>
-                  </p>
-                </div>
-                <div className="lg:col-span-4 lg:col-start-9">
-                  <ul className="space-y-3 font-mono text-xs text-paper/80 sm:text-sm">
-                    {STOPS.map((c) => (
-                      <li key={c.n} data-pi data-gsap-pending className="flex items-center gap-3 border-b border-paper/15 pb-3">
-                        <span aria-hidden className="grid size-4 place-items-center border border-paper/70 text-[11px] leading-none text-marker">
-                          ×
-                        </span>
+                    <div className="mt-6 grid gap-2 border-t border-dashed border-ink/25 pt-5 sm:mt-8 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-8">
+                      <h3 data-ci data-gsap-pending className="font-display text-[1.75rem] leading-[0.95] sm:text-[2.3rem]">
                         {c.stop!.title}
-                      </li>
-                    ))}
-                  </ul>
-                  <a
-                    data-pi
-                    data-gsap-pending
-                    href="#contato"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      scrollTo("#contato");
-                    }}
-                    className="group mt-8 flex items-stretch bg-paper text-ink outline-offset-4 focus-visible:outline-2 focus-visible:outline-paper"
-                  >
-                    <span className="flex-1 px-5 py-3.5 text-[15px] font-semibold [font-stretch:88%]">
-                      Enviar meu contrato para análise
-                    </span>
-                    <span className="grid w-14 place-items-center border-l border-ink/15 transition-colors group-hover:bg-marker">
-                      →
-                    </span>
-                  </a>
-                </div>
-              </div>
-            </article>
+                      </h3>
+                      <div>
+                        <p data-ci data-gsap-pending className="text-[15px] leading-snug text-ink-soft sm:text-base">
+                          {c.stop!.body}
+                        </p>
+                        <p data-ci data-gsap-pending className="mt-3 font-mono text-[11px] text-ink-faint">
+                          ↳ {c.stop!.ref}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* sombra das folhas que ficam por baixo */}
+                    <div data-shade aria-hidden className="pointer-events-none absolute inset-0 bg-ink-2 opacity-0" />
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </div>

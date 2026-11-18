@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Papel, tinta e marca-texto. Nada além disso. */
-  /* Mais contraste: papel limpo, tinta quase preta, marca-texto de verdade. */
-  --color-paper: #f5f2eb;
-  --color-paper-2: #e6e0d3;
-  --color-ink: #0e0e0d;
-  --color-ink-2: #1b1a18;
-  --color-ink-soft: #3d3b36;
-  --color-ink-faint: #6f6b62;
-  --color-marker: #ffe014;
+  /*
+   * Cores da marca (logo do escritório): azul-marinho e dourado.
+   * Os nomes semânticos ficam: "ink" = azul (fundo escuro / texto no claro),
+   * "paper" = creme (fundo claro / texto no escuro), "marker" = dourado (destaque).
+   */
+  --color-paper: #f4efe6;
+  --color-paper-2: #e9e0d2;
+  --color-ink: #142f40;
+  --color-ink-2: #0d2231;
+  --color-ink-soft: #3b5263;
+  --color-ink-faint: #74848f;
+  --color-marker: #c1a283;
+  --color-marker-2: #dcc7ab;
 
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-plex-mono);

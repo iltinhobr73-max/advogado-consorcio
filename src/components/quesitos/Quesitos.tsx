@@ -58,13 +58,13 @@ export function Quesitos() {
   });
 
   return (
-    <section ref={root} id="quesitos" aria-labelledby="quesitos-titulo" className="bg-paper-2 text-ink">
+    <section ref={root} id="quesitos" aria-labelledby="quesitos-titulo" className="bg-ink text-paper">
       <div className="mx-auto max-w-[1680px] px-4 pb-24 pt-5 sm:px-8 lg:px-12 lg:pb-36">
-        <FolhaHeader left="Quesitos" center="Perguntas frequentes" fl="06" />
+        <FolhaHeader left="Quesitos" center="Perguntas frequentes" fl="06" dark />
 
         <div className="mt-14 grid gap-12 lg:mt-20 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-20">
           <div>
-            <p data-item data-gsap-pending className="font-mono text-xs text-ink-soft sm:text-sm">
+            <p data-item data-gsap-pending className="font-mono text-xs text-paper/65 sm:text-sm">
               O que mais nos perguntam.
             </p>
             <h2
@@ -82,7 +82,7 @@ export function Quesitos() {
               const id = `quesito-${i}`;
               const isOpen = open === i;
               return (
-                <li key={id} data-item data-gsap-pending data-quesito className="border-t border-ink/25 last:border-b">
+                <li key={id} data-item data-gsap-pending data-quesito className="border-t border-paper/20 last:border-b">
                   <h3>
                     <button
                       type="button"
@@ -93,11 +93,11 @@ export function Quesitos() {
                         const list = e.currentTarget.closest("ol");
                         if (list) toggle(i, Array.from(list.querySelectorAll<HTMLElement>("[data-quesito]")));
                       }}
-                      className="grid w-full grid-cols-[3.5rem_1fr_2rem] items-start gap-2 py-6 text-left outline-offset-4 focus-visible:outline-2 focus-visible:outline-ink sm:grid-cols-[5rem_1fr_2rem] sm:py-8"
+                      className="grid w-full grid-cols-[3.5rem_1fr_2rem] items-start gap-2 py-6 text-left outline-offset-4 focus-visible:outline-2 focus-visible:outline-marker sm:grid-cols-[5rem_1fr_2rem] sm:py-8"
                     >
-                      <span className="pt-1.5 font-mono text-[11px] text-ink-soft sm:text-xs">{i + 1}º quesito</span>
+                      <span className="pt-1.5 font-mono text-[11px] text-marker sm:text-xs">{i + 1}º quesito</span>
                       <span className="font-display text-[1.6rem] leading-[1] sm:text-[2.3rem]">{item.pergunta}</span>
-                      <span data-sinal aria-hidden className="mt-1 block justify-self-end font-mono text-2xl leading-none">
+                      <span data-sinal aria-hidden className="mt-1 block justify-self-end font-mono text-2xl leading-none text-marker">
                         +
                       </span>
                     </button>
@@ -110,8 +110,8 @@ export function Quesitos() {
                     className="overflow-hidden"
                   >
                     <div className="grid grid-cols-[3.5rem_1fr] gap-2 pb-8 sm:grid-cols-[5rem_1fr]">
-                      <span className="font-mono text-[11px] text-ink-soft sm:text-xs">Resposta</span>
-                      <p className="max-w-[60ch] text-base leading-relaxed text-ink-soft sm:text-lg">{item.resposta}</p>
+                      <span className="font-mono text-[11px] text-paper/65 sm:text-xs">Resposta</span>
+                      <p className="max-w-[60ch] text-base leading-relaxed text-paper/65 sm:text-lg">{item.resposta}</p>
                     </div>
                   </div>
                 </li>

@@ -54,9 +54,9 @@ export function Qualificacao() {
     .join("");
 
   return (
-    <section ref={root} id="qualificacao" aria-labelledby="qualificacao-titulo" className="bg-paper-2 text-ink">
+    <section ref={root} id="qualificacao" aria-labelledby="qualificacao-titulo" className="bg-ink text-paper">
       <div className="mx-auto max-w-[1680px] px-4 pb-24 pt-5 sm:px-8 lg:px-12 lg:pb-36">
-        <FolhaHeader left="Qualificação" center="Sobre o advogado" fl="04" />
+        <FolhaHeader left="Qualificação" center="Sobre o advogado" fl="04" dark />
 
         <div className="mt-14 grid items-start gap-14 lg:mt-20 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-24">
           {/* Foto 3×4 com clipe */}
@@ -64,21 +64,21 @@ export function Qualificacao() {
             <svg
               aria-hidden
               viewBox="0 0 24 64"
-              className="absolute -top-6 left-10 z-10 h-16 w-6 text-ink-soft"
+              className="absolute -top-6 left-10 z-10 h-16 w-6 text-marker-2"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.6"
             >
               <path d="M8 40V10a4 4 0 0 1 8 0v40a7 7 0 0 1-14 0V16" />
             </svg>
-            <div className="bg-paper p-3 pb-12 shadow-[0_1px_0_rgba(0,0,0,0.04),0_30px_60px_-25px_rgba(18,18,17,0.35)]">
+            <div className="bg-paper p-3 pb-12 shadow-[0_2px_0_rgba(0,0,0,0.2),0_40px_80px_-25px_rgba(5,15,22,0.8)]">
               <div className="relative aspect-[3/4] overflow-hidden bg-ink">
                 {ESCRITORIO.temFoto ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src="/media/advogado.jpg"
                     alt={`Foto de ${ESCRITORIO.advogado}`}
-                    className="h-full w-full object-cover object-[50%_18%] contrast-[1.08] grayscale"
+                    className="h-full w-full object-cover object-[50%_18%]"
                   />
                 ) : (
                   <div className="grid h-full w-full place-items-center">
@@ -97,7 +97,7 @@ export function Qualificacao() {
           </figure>
 
           <div>
-            <p data-item data-gsap-pending className="font-mono text-xs text-ink-soft sm:text-sm">
+            <p data-item data-gsap-pending className="font-mono text-xs text-marker sm:text-sm">
               {ESCRITORIO.oabs.join("  ·  ")}
             </p>
             <h2
@@ -108,7 +108,7 @@ export function Qualificacao() {
             >
               {ESCRITORIO.advogado}
             </h2>
-            <span data-draw className="mt-8 block h-px w-full bg-ink" />
+            <span data-draw className="mt-8 block h-px w-full bg-marker/60" />
 
             <p
               data-item
@@ -126,7 +126,7 @@ export function Qualificacao() {
                 <span key={t}>
                   <span
                     data-mark
-                    className="bg-[linear-gradient(transparent_55%,var(--color-marker)_55%,var(--color-marker)_92%,transparent_92%)] bg-no-repeat [background-size:100%_100%]"
+                    className="bg-[linear-gradient(transparent_80%,var(--color-marker)_80%,var(--color-marker)_94%,transparent_94%)] text-marker-2 bg-no-repeat [background-size:100%_100%]"
                   >
                     {t}
                   </span>
@@ -140,16 +140,16 @@ export function Qualificacao() {
                 href={WHATSAPP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-stretch bg-ink text-paper outline-offset-4 focus-visible:outline-2 focus-visible:outline-ink"
+                className="group flex items-stretch bg-marker text-ink outline-offset-4 focus-visible:outline-2 focus-visible:outline-marker"
               >
                 <span className="px-5 py-3.5 text-[15px] font-semibold [font-stretch:88%] sm:px-6">
                   Falar com o Dr. Luiz
                 </span>
-                <span className="grid w-14 place-items-center border-l border-paper/15 transition-colors group-hover:bg-marker group-hover:text-ink">
+                <span className="grid w-14 place-items-center border-l border-ink/15 transition-colors group-hover:bg-marker-2">
                   ↗
                 </span>
               </a>
-              <span className="font-mono text-[11px] text-ink-soft">pelo WhatsApp · {ESCRITORIO.whatsapp.exibicao}</span>
+              <span className="font-mono text-[11px] text-paper/60">pelo WhatsApp · {ESCRITORIO.whatsapp.exibicao}</span>
             </div>
           </div>
         </div>

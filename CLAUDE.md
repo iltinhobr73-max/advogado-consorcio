@@ -29,8 +29,8 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 
 - `src/lib/gsap.ts` — registra os plugins (ScrollTrigger, useGSAP). Importe `gsap`, `ScrollTrigger` e `useGSAP` sempre daqui.
 - `src/components/providers/SmoothScroll.tsx` — instância única do Lenis + `useScrollTo()` para rolar até âncoras.
-- `src/components/hero/Hero.tsx` — hero "letras miúdas": vídeo do contrato, título tarjado que vira marca-texto, "(continua na próxima página)" como scroll indicator.
-- `src/components/leitura/LeituraGuiada.tsx` — fl. 02, "a letra miúda em letra graúda": pin com travelling horizontal por 6 planos (abertura, 4 cláusulas, fecho). Câmera = timeline com scrub (x do trilho + dolly de escala + numeral gigante em outra velocidade para profundidade); conteúdo de cada plano = timeline em tempo real (stagger 0.2, power3.out) disparada na chegada. Trilho `w-[600%]` com planos `w-1/6` — mudou o nº de planos, ajuste as duas classes.
+- `src/components/hero/Hero.tsx` — hero: vídeo de luz de janela (persiana) nas cores da marca; o título aparece primeiro só como CONTORNO dourado (tensão) e depois é preenchido linha a linha (clip-path com folga para acentos/pernas); dois CTAs (análise e WhatsApp); indicador "role" que some ao descer.
+- `src/components/leitura/LeituraGuiada.tsx` — fl. 02, pilha de cláusulas: pin; cada cláusula chega como uma folha que desliza de baixo e pousa (inclinada) sobre a anterior; as de baixo recuam e escurecem (`[data-shade]`), a câmera recua enquanto a folha está no ar. À esquerda, índice das 4 cláusulas que acompanha e, no fim, o CTA. Folhas/câmera = scrub; conteúdo de cada folha = tempo real (stagger 0.2, power3.out) na hora em que pousa.
 - `src/content/contrato.ts` — texto do contrato fictício e das anotações (paradas da câmera).
 - `src/content/escritorio.ts` — **todos os dados do escritório** (nome, OAB, contatos, pedidos, qualificação, depoimentos, perguntas, sumário). Altere aqui, não nos componentes.
 - `src/components/doc/Folha.tsx` — `FolhaHeader` (cabeçalho mono + régua) e `revealFolha()` (entrada padrão: régua expo.inOut, `[data-item]` com stagger 0.2 power3.out, `[data-draw]` linhas traçadas). Use em toda folha nova.
@@ -39,14 +39,13 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/components/encaminhamento/Encaminhamento.tsx` — fl. 07: termo de encaminhamento (formulário), carimbo "RECEBIDO" e fecho do documento.
 - `src/app/api/contato/route.ts` — recebe o formulário e repassa para `CONTACT_WEBHOOK_URL`. Sem essa variável responde 503 `not_configured` e o site avisa que o envio não está ativo (nunca finge sucesso).
 - `public/media/advogado.jpg` — foto do advogado (208×337, baixa resolução: exibida pequena e em P&B). `logo-monograma.png` — monograma extraído do logo original como máscara alfa; use sempre via `<Monograma>`/`<Assinatura>` (`src/components/doc/Logo.tsx`), que herdam a cor do texto. `src/app/icon.png` gerado a partir dele.
-- `public/media/contrato.mp4` / `contrato-poster.jpg` — contrato de consórcio fictício rolando em loop (gerado). Pode ser trocado por filmagem real de um contrato.
+- `public/media/escritorio.mp4` / `escritorio-poster.jpg` — luz de janela atravessando persiana sobre parede azul (gerado). Pode ser trocado por filmagem real do escritório (mantendo o lado esquerdo escuro para o título).
 
 ## Direção de arte
 
 O site é um **documento**, não um template de advocacia. Evitar o padrão genérico: fundo escuro, serifa clássica, dourado, botões em pílula, microcopy em caixa alta espaçada, "role" com linha, ícones de balança/martelo, gradientes radiais.
 
-- Paleta: papel (`paper`), tinta (`ink`) e marca-texto (`marker`). O amarelo só aparece onde algo é "destacado". Contraste alto: textos secundários em `ink-soft` (não mais claros que isso em texto corrido); amarelo vivo, usado como bloco (`bg-marker text-ink`) em títulos sobre fundo escuro.
-- A Leitura guiada acontece numa **mesa escura** (`bg-ink`, luz radial): é a única folha escura, para dar ritmo à página. O trecho abusivo de cada cláusula aparece em tipografia gigante e o marca-texto o atravessa (o texto passa de papel para tinta junto).
+- **Paleta = cores da logo do escritório.** `ink` = azul-marinho #142f40 (cor principal: fundos escuros e texto no claro), `paper` = creme #f4efe6, `marker` = dourado #c1a283 (destaques, botões principais, réguas nas folhas azuis), `marker-2` = dourado claro (hover/texto dourado sobre azul). Folhas azuis: hero, leitura, qualificação, quesitos; creme: pedidos, declarações, encaminhamento. Fotos sempre na cor original (sem grayscale).
 - Tipografia: Archivo condensado e pesado (`.font-display`) para display; IBM Plex Mono para notas de margem, numeração, metadados e notas de rodapé.
 - Vocabulário visual de contrato: tarjas, marca-texto, notas de rodapé (¹), numeração de linhas, "fl. 01", régua fina, cantos retos.
 - Cada seção deve ter uma ideia ligada ao assunto (consórcio/contrato), não só um layout.

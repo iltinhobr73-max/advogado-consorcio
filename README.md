@@ -4,8 +4,8 @@ Site em formato de **documento**: cada seção é uma folha (fl. 01 a fl. 07) de
 
 | Folha | Seção |
 |---|---|
-| fl. 01 | Hero — frase tarjada que vira marca-texto, contrato rolando ao fundo |
-| fl. 02 | Leitura guiada — seção fixada; uma "câmera" percorre o contrato e para em 4 cláusulas |
+| fl. 01 | Hero — título que aparece em contorno e é preenchido, vídeo de luz de janela ao fundo |
+| fl. 02 | Leitura guiada — seção fixada; 4 cláusulas chegam como folhas empilhadas sobre a mesa |
 | fl. 03 | Dos pedidos — serviços (a, b, c) e modo de atendimento (I–IV) |
 | fl. 04 | Qualificação — sobre o advogado |
 | fl. 05 | Declarações — avaliações de clientes |
@@ -26,5 +26,5 @@ npm run dev
 1. **Autorização do escritório.** Os dados em `src/content/escritorio.ts` (nome, OAB, contatos, depoimentos) foram preenchidos a partir do site público atual, como proposta.
 2. **Envio do formulário.** Defina `CONTACT_WEBHOOK_URL` (webhook de automação, CRM ou serviço de e-mail que aceite `multipart/form-data`). Sem ela, o formulário avisa que o envio não está ativo.
 3. **Foto e logo em alta.** `public/media/advogado.jpg` (208×337) e o monograma vieram de arquivos pequenos. Com versões maiores, basta substituir a foto; para o logo, o ideal é o arquivo vetorial (SVG/PDF) do escritório.
-4. **Vídeo do hero.** `public/media/contrato.mp4` é provisório (gerado).
+4. **Vídeo do hero.** `public/media/escritorio.mp4` é provisório (gerado). Uma filmagem real do escritório, com o lado esquerdo mais escuro, fica melhor.
 5. **Revisão jurídica** das referências legais (`src/content/contrato.ts`) e dos textos (`escritorio.ts`).

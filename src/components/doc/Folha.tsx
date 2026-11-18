@@ -3,15 +3,26 @@
 import { gsap } from "@/lib/gsap";
 
 /** Cabeçalho de documento repetido em cada folha (mono + régua fina). */
-export function FolhaHeader({ left, center, fl }: { left: string; center?: string; fl: string }) {
+export function FolhaHeader({
+  left,
+  center,
+  fl,
+  dark = false,
+}: {
+  left: string;
+  center?: string;
+  fl: string;
+  /** Folha em fundo azul (texto creme, régua dourada). */
+  dark?: boolean;
+}) {
   return (
-    <div className="font-mono text-[11px] leading-none text-ink-soft sm:text-xs">
+    <div className={`font-mono text-[11px] leading-none sm:text-xs ${dark ? "text-paper/65" : "text-ink-soft"}`}>
       <div className="flex items-baseline justify-between gap-4">
         <span>{left}</span>
         {center && <span className="hidden sm:inline">{center}</span>}
         <span>fl. {fl}</span>
       </div>
-      <div data-folha-rule className="mt-3 h-px w-full bg-ink" />
+      <div data-folha-rule className={`mt-3 h-px w-full ${dark ? "bg-marker/70" : "bg-ink"}`} />
     </div>
   );
 }
