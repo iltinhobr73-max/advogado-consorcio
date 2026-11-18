@@ -1,35 +1,38 @@
 import type { Metadata, Viewport } from "next";
-import { Inter_Tight, Instrument_Serif } from "next/font/google";
+import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import { SmoothScroll } from "@/components/providers/SmoothScroll";
 import "./globals.css";
 
-const sans = Inter_Tight({
-  variable: "--font-inter-tight",
+// Grotesca variável com eixo de largura: usamos condensada no display.
+const display = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
+  axes: ["wdth"],
 });
 
-const serif = Instrument_Serif({
-  variable: "--font-instrument-serif",
+// Mono para anotações de margem, numeração e metadados de documento.
+const mono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500"],
   style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
   title: "Advocacia em Consórcios",
   description:
-    "Assessoria jurídica em consórcios: contratos abusivos, taxas indevidas, promessas de contemplação e restituição de valores.",
+    "Análise jurídica de contratos de consórcio: taxa de administração, fundo de reserva, multa por desistência, promessa de contemplação e restituição de valores.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0c0e",
+  themeColor: "#eeebe3",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${sans.variable} ${serif.variable} antialiased`}
+      className={`${display.variable} ${mono.variable} antialiased`}
       suppressHydrationWarning
     >
       <head>

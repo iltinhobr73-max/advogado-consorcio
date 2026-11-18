@@ -4,8 +4,31 @@ import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
 
-const LINE_ONE = "Seu consórcio";
-const HEADLINE = "Seu consórcio tem regras. A administradora também.";
+/**
+ * Conceito: "letras miúdas".
+ * Ao fundo, um contrato de consórcio rolando em letra miúda. A frase
+ * principal surge primeiro TARJADA, palavra por palavra — o leitor vê a
+ * forma da frase antes de poder lê-la. As tarjas recuam e a da última
+ * linha vira marca-texto: o que estava escondido passa a estar em destaque.
+ */
+
+type Word = { text: string; marker?: boolean };
+
+const LINES: Word[][] = [
+  [{ text: "Estava" }, { text: "no" }, { text: "contrato." }],
+  [{ text: "Só" }, { text: "não" }, { text: "estava" }],
+  [{ text: "em", marker: true }, { text: "destaque.", marker: true }],
+];
+
+const INK = "#121211";
+const MARKER = "#f1e23b";
+// O contrato é textura, não conteúdo.
+const VIDEO_ALPHA = 0.13;
+
+const HEADLINE = "Estava no contrato. Só não estava em destaque.";
+
+// Ritmo levemente irregular das tarjas — como alguém riscando à mão.
+const BAR_RHYTHM = [0, 0.11, 0.19, 0.42, 0.5, 0.6, 0.86, 0.97];
 
 export function Hero() {
   const root = useRef<HTMLElement>(null);
@@ -24,96 +47,120 @@ export function Hero() {
         },
         (ctx) => {
           const { reduce } = ctx.conditions as { reduce: boolean };
+          const bars = q("[data-bar]");
+          const redactBars = q("[data-bar]:not([data-marker])");
+          const markerBars = q("[data-bar][data-marker]");
+          const words = q("[data-word-text]");
 
-          // GSAP assume o controle da visibilidade (remove o anti-flash).
           gsap.set(q("[data-gsap-pending]"), { autoAlpha: 1 });
+          gsap.set(q("[data-hero-video]"), { autoAlpha: VIDEO_ALPHA });
 
           if (reduce) {
             video.current?.pause();
-            gsap.set(q("[data-hero-video]"), { autoAlpha: 0.55 });
-            gsap.set(q("[data-hero-caret]"), { autoAlpha: 0 });
+            gsap.set(redactBars, { autoAlpha: 0 });
             return;
           }
 
           /* ---------- Estado inicial ---------- */
-          gsap.set(q("[data-hero-video]"), { autoAlpha: 0, scale: 1.18 });
-          gsap.set(q("[data-hero-caret]"), { autoAlpha: 0 });
+          gsap.set(words, { autoAlpha: 0 });
+          gsap.set(bars, {
+            autoAlpha: 1,
+            scaleX: 0,
+            scaleY: 1,
+            transformOrigin: "0% 50%",
+            backgroundColor: INK,
+          });
+          gsap.set(q("[data-line-no]"), { autoAlpha: 0 });
+          gsap.set(q("[data-hero-video]"), { autoAlpha: 0 });
           gsap.set(q("[data-hero-rule]"), { scaleX: 0, transformOrigin: "0% 50%" });
-          gsap.set(q("[data-hero-meta]"), { yPercent: 110 });
-          gsap.set(q("[data-hero-char]"), { yPercent: 115 });
-          gsap.set(q("[data-hero-line-one]"), { letterSpacing: "0.38em" });
-          gsap.set(q("[data-hero-line]"), { yPercent: 115, rotate: 2.5 });
-          gsap.set(q("[data-hero-fade]"), { autoAlpha: 0, y: 24 });
-          gsap.set(q("[data-hero-indicator]"), { autoAlpha: 0 });
+          gsap.set(q("[data-hero-meta]"), { autoAlpha: 0, y: -8 });
+          gsap.set(q("[data-hero-fade]"), { autoAlpha: 0, y: 14 });
+          gsap.set(q("[data-footnote]"), { autoAlpha: 0 });
+          gsap.set(q("[data-hero-continua]"), { autoAlpha: 0 });
 
-          /* ---------- Intro: silêncio, cursor, linha... e só então a palavra ---------- */
-          const tl = gsap.timeline({ defaults: { ease: "expo.out" }, delay: 0.25 });
+          const tl = gsap.timeline({ delay: 0.2 });
 
           tl
-            // 1. Escuro total. Um cursor surge onde a frase vai nascer e pisca —
-            //    a página "respira" antes de falar.
-            .set(q("[data-hero-caret]"), { autoAlpha: 1 }, 0.35)
-            .to(
-              q("[data-hero-caret]"),
-              { autoAlpha: 0, duration: 0.42, repeat: 3, yoyo: true, ease: "steps(1)" },
-              0.6,
-            )
-            // 2. A linha fina atravessa a tela devagar, como uma régua sendo puxada.
-            .to(q("[data-hero-rule]"), { scaleX: 1, duration: 1.6, ease: "expo.inOut" }, 0.5)
-            .to(q("[data-hero-meta]"), { yPercent: 0, duration: 1, stagger: 0.08 }, 1.25)
-            // 3. A luz do vídeo vem por trás, lenta.
-            .to(
-              q("[data-hero-video]"),
-              { autoAlpha: 0.6, scale: 1, duration: 3.2, ease: "power2.out" },
-              1.3,
-            )
-            // 4. O cursor se recolhe — e a primeira palavra sobe, ainda espaçada,
-            //    e se comprime até o tracking final.
-            .to(q("[data-hero-caret]"), { autoAlpha: 1, duration: 0.01 }, 2.2)
-            .to(q("[data-hero-caret]"), { scaleY: 0, duration: 0.35, ease: "power3.in" }, 2.22)
-            .to(q("[data-hero-char]"), { yPercent: 0, duration: 1.2, stagger: 0.032 }, 2.45)
-            .to(
-              q("[data-hero-line-one]"),
-              { letterSpacing: "-0.02em", duration: 1.9, ease: "expo.out" },
-              2.45,
-            )
-            // 5. O resto da frase entra em bloco, linha a linha.
-            .to(
-              q("[data-hero-line]"),
-              { yPercent: 0, rotate: 0, duration: 1.3, stagger: 0.13 },
-              3.05,
-            )
-            .to(q("[data-hero-fade]"), { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.1 }, 3.6)
-            .to(q("[data-hero-indicator]"), { autoAlpha: 1, duration: 1 }, 4.1);
+            // 1. Só o contrato rolando. Nenhuma palavra ainda.
+            .to(q("[data-hero-video]"), { autoAlpha: VIDEO_ALPHA, duration: 1.4, ease: "power1.out" }, 0)
 
-          /* ---------- Indicador: ponto descendo pela linha, em loop ---------- */
-          const dot = q("[data-hero-dot]");
-          gsap
-            .timeline({ repeat: -1, repeatDelay: 0.3 })
-            .fromTo(dot, { yPercent: -100 }, { yPercent: 900, duration: 1.6, ease: "power2.inOut" }, 0)
-            .fromTo(dot, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.35, ease: "none" }, 0)
-            .to(dot, { autoAlpha: 0, duration: 0.35, ease: "none" }, 1.25);
+            // 2. A frase é escrita... já censurada. Tarja por tarja.
+            .to(
+              bars,
+              {
+                scaleX: 1,
+                duration: 0.24,
+                ease: "power4.out",
+                stagger: (i) => BAR_RHYTHM[i] ?? i * 0.1,
+              },
+              0.7,
+            )
+            .to(q("[data-line-no]"), { autoAlpha: 1, duration: 0.01, stagger: 0.42 }, 0.7)
+            // texto entra por baixo das tarjas, invisível ao leitor
+            .set(words, { autoAlpha: 1 }, 1.9)
+
+            // 3. Pausa. A frase existe, mas não se lê.
+            // 4. As tarjas recuam palavra a palavra.
+            .addLabel("reveal", 2.75)
+            .to(
+              redactBars,
+              {
+                scaleX: 0,
+                transformOrigin: "100% 50%",
+                duration: 0.55,
+                ease: "expo.inOut",
+                stagger: 0.085,
+              },
+              "reveal",
+            )
+            // 5. A última tarja não some: vira marca-texto.
+            .to(
+              markerBars,
+              { backgroundColor: MARKER, duration: 0.35, ease: "power2.out", stagger: 0.06 },
+              "reveal+=0.75",
+            )
+            .to(
+              markerBars,
+              {
+                scaleY: 0.44,
+                transformOrigin: "50% 100%",
+                duration: 0.8,
+                ease: "expo.out",
+                stagger: 0.06,
+              },
+              "reveal+=0.95",
+            )
+            .to(q("[data-footnote]"), { autoAlpha: 1, duration: 0.01 }, "reveal+=1.45")
+
+            // 6. O documento se completa em volta.
+            .to(q("[data-hero-rule]"), { scaleX: 1, duration: 1.1, ease: "expo.inOut" }, "reveal+=1.1")
+            .to(q("[data-hero-meta]"), { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out", stagger: 0.08 }, "reveal+=1.5")
+            .to(q("[data-hero-fade]"), { autoAlpha: 1, y: 0, duration: 0.8, ease: "power3.out", stagger: 0.1 }, "reveal+=1.6")
+            .to(q("[data-hero-continua]"), { autoAlpha: 1, duration: 0.6 }, "reveal+=2.1");
+
+          // Seta do "(continua)" cutucando para baixo.
+          gsap.to(q("[data-continua-arrow]"), {
+            y: 5,
+            duration: 0.7,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: -1,
+          });
 
           /* ---------- Scroll ---------- */
-          // Indicador some nos primeiros pixels de descida.
-          gsap.to(q("[data-hero-indicator-inner]"), {
-            autoAlpha: 0,
-            y: 28,
-            ease: "none",
-            scrollTrigger: { trigger: root.current, start: "top top", end: "+=180", scrub: true },
-          });
+          const st = { trigger: root.current, start: "top top", end: "bottom top", scrub: true };
 
-          // Parallax sutil: vídeo desce devagar, conteúdo sobe e apaga.
-          gsap.to(q("[data-hero-video-wrap]"), {
-            yPercent: 18,
+          gsap.to(q("[data-hero-continua-inner]"), {
+            autoAlpha: 0,
+            y: 12,
             ease: "none",
-            scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true },
+            scrollTrigger: { trigger: root.current, start: "top top", end: "+=140", scrub: true },
           });
-          gsap.to(q("[data-hero-content]"), {
-            y: -90,
-            autoAlpha: 0.15,
-            ease: "none",
-            scrollTrigger: { trigger: root.current, start: "top top", end: "bottom top", scrub: true },
+          // O contrato continua rolando mais rápido que a página.
+          gsap.to(q("[data-hero-video-wrap]"), { yPercent: -22, ease: "none", scrollTrigger: st });
+          // Linhas do título se separam levemente — o documento "abre".
+          q("[data-hero-line]").forEach((line, i) => {
+            gsap.to(line, { y: -40 * (i + 1), ease: "none", scrollTrigger: st });
           });
         },
       );
@@ -125,136 +172,158 @@ export function Hero() {
     <section
       ref={root}
       aria-label="Apresentação"
-      className="relative isolate flex h-svh min-h-[640px] w-full flex-col overflow-hidden bg-ink"
+      className="relative isolate flex h-svh min-h-[620px] w-full flex-col overflow-hidden bg-paper text-ink"
     >
-      {/* ---------- Vídeo de fundo ---------- */}
-      <div data-hero-video-wrap aria-hidden className="absolute inset-0 -z-10">
+      {/* ---------- Vídeo: o contrato em letra miúda ---------- */}
+      <div
+        data-hero-video-wrap
+        aria-hidden
+        className="absolute inset-x-0 -top-[6%] -z-10 h-[130%] [mask-image:linear-gradient(to_bottom,transparent_0%,black_22%,black_62%,transparent_100%)]"
+      >
         <video
           ref={video}
           data-hero-video
           data-gsap-pending
-          className="h-full w-full object-cover opacity-60"
-          src="/media/hero.mp4"
-          poster="/media/hero-poster.jpg"
+          className="h-full w-full object-cover opacity-[0.13] mix-blend-multiply grayscale"
+          src="/media/contrato.mp4"
+          poster="/media/contrato-poster.jpg"
           autoPlay
           muted
           loop
           playsInline
           preload="auto"
         />
-        {/* Véu para contraste do texto */}
-        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_20%_60%,transparent_0%,rgba(11,12,14,0.55)_55%,rgba(11,12,14,0.95)_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink to-transparent" />
       </div>
 
-      {/* ---------- Conteúdo ---------- */}
-      <div
-        data-hero-content
-        className="relative mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-between px-5 pb-10 pt-6 sm:px-10 sm:pb-12 sm:pt-8 lg:px-16"
-      >
-        {/* Barra superior */}
-        <div
-          data-gsap-pending
-          className="flex items-start justify-between gap-4 whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.16em] text-bone-dim sm:text-xs sm:tracking-[0.22em]"
-        >
-          <span className="block overflow-hidden">
-            <span data-hero-meta className="block">
-              Advocacia <span className="text-brass">·</span> Consórcios
+      <div className="relative mx-auto flex w-full max-w-[1680px] flex-1 flex-col px-4 pb-6 pt-5 sm:px-8 sm:pb-8 lg:px-12">
+        {/* ---------- Cabeçalho de documento ---------- */}
+        <div className="font-mono text-[11px] leading-none text-ink-soft sm:text-xs">
+          <div className="flex items-baseline justify-between gap-4">
+            <span data-hero-meta data-gsap-pending>
+              Análise de contrato — consórcio
             </span>
-          </span>
-          <span className="block overflow-hidden text-right">
-            <span data-hero-meta className="block">
-              Direito do Consumidor
+            <span data-hero-meta data-gsap-pending className="hidden sm:inline">
+              Lei nº 11.795/2008 · CDC
             </span>
-          </span>
+            <span data-hero-meta data-gsap-pending>
+              fl. 01
+            </span>
+          </div>
+          <div data-hero-rule data-gsap-pending className="mt-3 h-px w-full bg-ink" />
         </div>
 
-        {/* Título */}
-        <div className="mt-auto">
-          <div data-gsap-pending>
-            <div data-hero-rule className="mb-6 h-px w-full bg-bone/25 sm:mb-10" />
-
-            <h1 className="font-serif text-[clamp(2.6rem,12.4vw,10.5rem)] md:text-[clamp(3.1rem,10.4vw,10.5rem)] leading-[0.9] tracking-[-0.02em] text-bone">
-              <span className="sr-only">{HEADLINE}</span>
-
-              <span aria-hidden className="block">
-                {/* Linha 1: letra a letra, com o cursor de tensão */}
-                <span className="relative block overflow-hidden pb-[0.06em]">
-                  <span
-                    data-hero-caret
-                    className="absolute left-0 top-[0.12em] h-[0.78em] w-[3px] origin-bottom bg-brass"
-                  />
-                  <span data-hero-line-one className="block whitespace-nowrap">
-                    {Array.from(LINE_ONE).map((ch, i) => (
-                      <span key={i} data-hero-char className="inline-block will-change-transform">
-                        {ch === " " ? " " : ch}
+        {/* ---------- Título tarjado ---------- */}
+        <h1 className="relative my-auto pt-10 sm:pt-6">
+          <span className="sr-only">{HEADLINE}</span>
+          <span aria-hidden className="block isolate">
+            {LINES.map((line, li) => (
+              <span
+                key={li}
+                data-hero-line
+                className="relative grid grid-cols-[1fr] items-start sm:grid-cols-[3.25rem_1fr] lg:grid-cols-[4.5rem_1fr]"
+              >
+                <span
+                  data-line-no
+                  data-gsap-pending
+                  className="hidden pt-[0.9em] font-mono text-[11px] tabular-nums text-ink-faint sm:block"
+                >
+                  {String(li + 1).padStart(2, "0")}
+                </span>
+                <span className="font-display block whitespace-nowrap text-[clamp(2.9rem,13.4vw,14.5rem)] leading-[0.84] tracking-[-0.012em] sm:text-[clamp(3rem,12vw,14.5rem)]">
+                  {line.map((w, wi) => {
+                    return (
+                      <span key={wi}>
+                        <span className="relative inline-block">
+                          <span data-word-text data-gsap-pending className="relative">
+                            {w.text}
+                          </span>
+                          {/* Tarja (vira marca-texto quando data-marker). mix-blend-multiply:
+                              preta, esconde a tinta; amarela, deixa a tinta aparecer. */}
+                          <span
+                            data-bar
+                            data-marker={w.marker ? "" : undefined}
+                            className={
+                              "pointer-events-none absolute -inset-x-[0.035em] top-[0.13em] bottom-[0.03em] mix-blend-multiply " +
+                              (w.marker
+                                ? "origin-bottom scale-y-[0.44] bg-marker"
+                                : "invisible bg-ink")
+                            }
+                          />
+                        </span>
+                        {wi < line.length - 1 ? " " : null}
                       </span>
-                    ))}
-                  </span>
-                </span>
-
-                <span className="block overflow-hidden pb-[0.06em]">
-                  <span data-hero-line className="block origin-[0%_100%] whitespace-nowrap">
-                    tem regras.
-                  </span>
-                </span>
-                <span className="block overflow-hidden pb-[0.06em]">
-                  <span data-hero-line className="block origin-[0%_100%] whitespace-nowrap text-bone/55">
-                    A administradora
-                  </span>
-                </span>
-                <span className="block overflow-hidden pb-[0.1em]">
-                  <span data-hero-line className="block origin-[0%_100%] whitespace-nowrap italic text-brass">
-                    também.
-                  </span>
+                    );
+                  })}
+                  {li === LINES.length - 1 && (
+                    <sup
+                      data-footnote
+                      data-gsap-pending
+                      className="ml-[0.06em] align-[0.95em] font-mono text-[0.13em] font-medium"
+                    >
+                      1
+                    </sup>
+                  )}
                 </span>
               </span>
-            </h1>
-          </div>
+            ))}
+          </span>
+        </h1>
 
-          {/* Rodapé do hero */}
-          <div className="mt-8 flex flex-col gap-8 sm:mt-12 md:flex-row md:items-end md:justify-between">
-            <p
-              data-gsap-pending
-              data-hero-fade
-              className="max-w-md text-base leading-relaxed text-bone-dim sm:text-lg"
+        {/* ---------- Rodapé: nota de margem + ação ---------- */}
+        <div className="mt-8 grid gap-6 border-t border-ink/15 pt-5 sm:grid-cols-[3.25rem_1fr] lg:grid-cols-[4.5rem_1fr_auto] lg:items-end lg:gap-x-0">
+          <span className="hidden sm:block" />
+          <p
+            data-hero-fade
+            data-gsap-pending
+            className="max-w-[46ch] font-mono text-[13px] leading-[1.6] text-ink-soft sm:text-sm"
+          >
+            <span className="text-ink">¹</span> Taxa de administração, fundo de reserva,
+            multa por desistência, promessa de contemplação. A gente lê o seu
+            contrato cláusula por cláusula e explica, por escrito, o que pode ser
+            contestado.
+          </p>
+
+          <div data-hero-fade data-gsap-pending className="sm:col-start-2 lg:col-start-3">
+            <a
+              href="#contato"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo("#contato");
+              }}
+              className="group flex items-stretch bg-ink text-paper outline-offset-4 focus-visible:outline-2 focus-visible:outline-ink"
             >
-              Contratos abusivos, taxas indevidas, promessas de contemplação e
-              restituição de valores — cada caso analisado individualmente.
-            </p>
-
-            <div data-gsap-pending data-hero-fade className="flex items-center gap-6">
-              <a
-                href="#contato"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollTo("#contato");
-                }}
-                className="group inline-flex items-center gap-4 rounded-full border border-bone/25 py-3 pl-6 pr-3 text-sm font-medium tracking-wide text-bone transition-colors hover:border-brass hover:bg-brass hover:text-ink"
-              >
-                Analisar meu caso
-                <span className="grid size-9 place-items-center rounded-full bg-bone text-ink transition-colors group-hover:bg-ink group-hover:text-brass">
-                  <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
-                    <path d="M3 8h10m0 0L9 4m4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
-                  </svg>
+              <span className="flex flex-1 flex-col justify-center px-5 py-3.5 sm:px-6">
+                <span className="text-[15px] font-semibold tracking-[-0.005em] [font-stretch:88%] sm:text-base">
+                  Enviar meu contrato para análise
                 </span>
-              </a>
-            </div>
+                <span className="mt-0.5 font-mono text-[11px] text-paper/55">
+                  PDF ou foto das páginas
+                </span>
+              </span>
+              <span className="grid w-14 place-items-center border-l border-paper/15 transition-colors group-hover:bg-marker group-hover:text-ink">
+                <svg viewBox="0 0 16 16" className="size-4" fill="none" aria-hidden>
+                  <path d="M3 8h10m0 0L9 4m4 4-4 4" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              </span>
+            </a>
           </div>
         </div>
-      </div>
 
-      {/* ---------- Scroll indicator ---------- */}
-      <div
-        data-hero-indicator
-        data-gsap-pending
-        aria-hidden
-        className="pointer-events-none absolute bottom-8 left-1/2 hidden -translate-x-1/2 md:block"
-      >
-        <div data-hero-indicator-inner className="flex flex-col items-center gap-3">
-          <span className="text-[10px] uppercase tracking-[0.35em] text-bone-dim">Role</span>
-          <span className="relative block h-14 w-px overflow-hidden bg-bone/15">
-            <span data-hero-dot className="absolute left-0 top-0 block h-1.5 w-px bg-brass" />
+        {/* ---------- "(continua)" — o scroll indicator ---------- */}
+        <div
+          data-hero-continua
+          data-gsap-pending
+          aria-hidden
+          className="pointer-events-none mt-5 flex justify-end lg:mt-4"
+        >
+          <span
+            data-hero-continua-inner
+            className="flex items-center gap-2 font-mono text-[11px] italic text-ink-faint sm:text-xs"
+          >
+            (continua na próxima página)
+            <span data-continua-arrow className="not-italic">
+              ↓
+            </span>
           </span>
         </div>
       </div>

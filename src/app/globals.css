@@ -1,30 +1,39 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-ink: #0b0c0e;
-  --color-ink-2: #131518;
-  --color-bone: #ece6da;
-  --color-bone-dim: #a8a297;
-  --color-brass: #c8a46a;
+  /* Papel, tinta e marca-texto. Nada além disso. */
+  --color-paper: #eeebe3;
+  --color-paper-2: #e4e0d5;
+  --color-ink: #121211;
+  --color-ink-soft: #55534d;
+  --color-ink-faint: #8f8b80;
+  --color-marker: #f1e23b;
 
-  --font-sans: var(--font-inter-tight);
-  --font-serif: var(--font-instrument-serif);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-plex-mono);
 }
 
 html {
-  background: var(--color-ink);
-  color-scheme: dark;
+  background: var(--color-paper);
+  color-scheme: light;
 }
 
 body {
-  background: var(--color-ink);
-  color: var(--color-bone);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-archivo), system-ui, sans-serif;
 }
 
 ::selection {
-  background: var(--color-brass);
+  background: var(--color-marker);
   color: var(--color-ink);
+}
+
+/* Display condensado (eixo wdth do Archivo). */
+.font-display {
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-stretch: 66%;
+  font-weight: 820;
 }
 
 /*
