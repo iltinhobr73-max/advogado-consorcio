@@ -106,9 +106,11 @@ export function LeituraGuiada() {
             const r = offsetWithin(stops[i] as HTMLElement, doc);
             // Desktop: cláusula à esquerda, anotação na coluna da direita.
             // Mobile: cláusula no terço superior, anotação embaixo.
-            const frameX = desktop ? W * 0.335 : W * 0.5;
+            // Desktop: o papel termina antes da coluna das notas (texto claro
+            // sobre papel claro some). Mobile: cláusula no terço superior.
+            const frameX = desktop ? W * 0.3 : W * 0.5;
             const frameY = desktop ? H * 0.52 : H * 0.3;
-            const targetW = desktop ? W * 0.6 : W * 0.93;
+            const targetW = desktop ? W * 0.54 : W * 0.93;
             const s = gsap.utils.clamp(0.4, 2.6, targetW / r.w);
             // Pequena variação de ângulo por parada: câmera na mão, não slide.
             const tilt = [-1.2, 0.9, -0.6, 1.1][i] ?? 0;
@@ -201,10 +203,21 @@ export function LeituraGuiada() {
           let reached = -1;
           const markOn = marks.map(() => false);
 
+          // Foco de câmera: na parada, o resto do contrato apaga e só a cláusula da vez fica acesa.
+          const dims = q("[data-dim]");
+          const focusOn = (target: Element | null) =>
+            gsap.to(dims, {
+              opacity: (_k: number, el: Element) => (!target || el === target ? 1 : 0.14),
+              duration: 0.8,
+              ease: "power3.inOut",
+              overwrite: "auto",
+            });
+
           const setActive = (next: number) => {
             if (next === active) return;
             const prev = active;
             active = next;
+            focusOn(next >= 0 && next < STOPS.length ? stops[next] : null);
             if (prev >= 0) hidePanel(panels[prev]);
             if (next >= 0) showPanel(panels[next]);
           };
@@ -315,21 +328,26 @@ export function LeituraGuiada() {
       ref={root}
       id="leitura"
       aria-labelledby="leitura-titulo"
-      className="group/leitura relative bg-paper-2 text-ink"
+      className="group/leitura relative bg-ink text-paper"
     >
       <div
         data-stage
         className="relative w-full overflow-hidden group-data-[mode=camera]/leitura:h-svh"
       >
         {/* ---------- Cabeçalho de documento (continuidade do hero) ---------- */}
-        <div className="pointer-events-none relative z-20 bg-paper-2"><div className="mx-auto max-w-[1680px] px-4 pb-px pt-5 font-mono text-[11px] leading-none text-ink-soft sm:px-8 sm:text-xs lg:px-12">
+        {/* Mesa escura com uma luz sobre o contrato */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_65%_70%_at_62%_48%,#2c2a25_0%,#151513_55%,#0b0b0a_100%)] group-data-[mode=camera]/leitura:block"
+        />
+        <div className="pointer-events-none relative z-20 bg-ink"><div className="mx-auto max-w-[1680px] px-4 pb-px pt-5 font-mono text-[11px] leading-none text-paper/60 sm:px-8 sm:text-xs lg:px-12">
           <div className="flex items-baseline justify-between gap-4">
             <span>Leitura guiada</span>
             <span className="flex items-center gap-3">
               <span className="hidden gap-1 sm:group-data-[mode=camera]/leitura:flex" aria-hidden>
                 {STOPS.map((s) => (
-                  <span key={s.n} className="relative block h-px w-6 bg-ink/20">
-                    <span data-tick className="absolute inset-0 origin-left bg-ink" />
+                  <span key={s.n} className="relative block h-px w-6 bg-paper/25">
+                    <span data-tick className="absolute inset-0 origin-left bg-marker" />
                   </span>
                 ))}
               </span>
@@ -339,7 +357,7 @@ export function LeituraGuiada() {
             </span>
             <span>fl. 02</span>
           </div>
-          <div className="mt-3 h-px w-full bg-ink" />
+          <div className="mt-3 h-px w-full bg-paper/50" />
         </div></div>
 
         {/* ---------- Intro ---------- */}
@@ -348,7 +366,7 @@ export function LeituraGuiada() {
           className="relative z-10 mx-auto max-w-[1680px] px-4 pt-14 sm:px-8 lg:px-12 group-data-[mode=camera]/leitura:pointer-events-none group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:top-0 lg:group-data-[mode=camera]/leitura:top-1/2 lg:group-data-[mode=camera]/leitura:-translate-y-1/2 lg:group-data-[mode=camera]/leitura:pt-0"
         >
           <div className="max-w-[min(40rem,46%)] max-lg:max-w-none">
-            <p data-intro-item data-gsap-pending className="font-mono text-xs text-ink-soft sm:text-sm">
+            <p data-intro-item data-gsap-pending className="font-mono text-xs text-paper/60 sm:text-sm">
               Um contrato de consórcio comum. Onze cláusulas.
             </p>
             <h2
@@ -357,9 +375,9 @@ export function LeituraGuiada() {
               data-gsap-pending
               className="font-display mt-4 text-[clamp(2.6rem,11vw,4rem)] leading-[0.88] lg:text-[clamp(3.5rem,6.2vw,7.5rem)]"
             >
-              Quatro delas pesam no seu bolso.
+              Quatro delas <span className="bg-marker px-[0.06em] text-ink">pesam</span> no seu bolso.
             </h2>
-            <p data-intro-item data-gsap-pending className="mt-5 max-w-[38ch] text-base leading-snug text-ink-soft lg:text-lg">
+            <p data-intro-item data-gsap-pending className="mt-5 max-w-[38ch] text-base leading-snug text-paper/70 lg:text-lg">
               Role devagar. A gente vai lendo junto com você.
             </p>
           </div>
@@ -372,9 +390,9 @@ export function LeituraGuiada() {
         >
           <article
             data-doc
-            className="absolute left-0 top-0 w-[500px] bg-paper px-[36px] pb-[60px] pt-[48px] text-[15px] lg:w-[880px] lg:px-[72px] lg:pb-[80px] lg:pt-[64px] leading-[1.62] shadow-[0_1px_0_rgba(0,0,0,0.04),0_30px_60px_-20px_rgba(18,18,17,0.28),0_60px_120px_-40px_rgba(18,18,17,0.25)] will-change-transform"
+            className="absolute left-0 top-0 w-[500px] bg-paper px-[36px] text-ink pb-[60px] pt-[48px] text-[15px] lg:w-[880px] lg:px-[72px] lg:pb-[80px] lg:pt-[64px] leading-[1.62] shadow-[0_2px_0_rgba(0,0,0,0.3),0_40px_80px_-20px_rgba(0,0,0,0.7),0_80px_160px_-40px_rgba(0,0,0,0.6)] will-change-transform"
           >
-            <header className="border-b border-ink pb-5 text-center">
+            <header data-dim className="border-b border-ink pb-5 text-center">
               <p className="font-mono text-[11px] text-ink-soft">Instrumento particular · via do consorciado</p>
               <p className="mt-2 text-[19px] font-bold uppercase tracking-[0.04em] [font-stretch:80%]">
                 Contrato de adesão a grupo de consórcio
@@ -382,7 +400,7 @@ export function LeituraGuiada() {
             </header>
             <div className="mt-6 space-y-[14px] text-justify hyphens-auto">
               {CLAUSES.map((c) => (
-                <div key={c.n} data-stop={c.stop ? "" : undefined} className="py-1">
+                <div key={c.n} data-dim data-stop={c.stop ? "" : undefined} className="py-1">
                   <p className="font-mono text-[11px] font-medium uppercase">
                     Cláusula {c.n}ª — {c.heading}
                   </p>
@@ -401,7 +419,7 @@ export function LeituraGuiada() {
                 </div>
               ))}
             </div>
-            <footer className="mt-14 grid grid-cols-2 gap-12 font-mono text-[11px] text-ink-soft">
+            <footer data-dim className="mt-14 grid grid-cols-2 gap-12 font-mono text-[11px] text-ink-soft">
               <div>
                 <div className="h-px bg-ink" />
                 <p className="mt-2">CONSORCIADO</p>
@@ -418,7 +436,7 @@ export function LeituraGuiada() {
         <div
           data-vignette
           aria-hidden
-          className="pointer-events-none invisible absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_40%_50%,transparent_45%,rgba(18,18,17,0.18)_100%)]"
+          className="pointer-events-none invisible absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_38%_50%,transparent_35%,rgba(0,0,0,0.6)_100%)]"
         />
 
         {/* ---------- Anotações de margem ---------- */}
@@ -429,11 +447,11 @@ export function LeituraGuiada() {
             <li
               key={c.n}
               data-note
-              className="group-data-[mode=camera]/leitura:invisible group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:bottom-0 group-data-[mode=camera]/leitura:bg-paper group-data-[mode=camera]/leitura:px-4 group-data-[mode=camera]/leitura:pb-7 group-data-[mode=camera]/leitura:pt-5 group-data-[mode=camera]/leitura:shadow-[0_-20px_40px_-10px_rgba(18,18,17,0.12)] lg:group-data-[mode=camera]/leitura:inset-x-auto lg:group-data-[mode=camera]/leitura:bottom-auto lg:group-data-[mode=camera]/leitura:right-12 lg:group-data-[mode=camera]/leitura:top-1/2 lg:group-data-[mode=camera]/leitura:w-[min(30vw,26rem)] lg:group-data-[mode=camera]/leitura:-translate-y-1/2 lg:group-data-[mode=camera]/leitura:bg-transparent lg:group-data-[mode=camera]/leitura:p-0 lg:group-data-[mode=camera]/leitura:shadow-none"
+              className="group-data-[mode=camera]/leitura:invisible group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:bottom-0 group-data-[mode=camera]/leitura:bg-ink-2 group-data-[mode=camera]/leitura:px-4 group-data-[mode=camera]/leitura:pb-7 group-data-[mode=camera]/leitura:pt-5 group-data-[mode=camera]/leitura:shadow-[0_-24px_48px_-8px_rgba(0,0,0,0.6)] lg:group-data-[mode=camera]/leitura:inset-x-auto lg:group-data-[mode=camera]/leitura:bottom-auto lg:group-data-[mode=camera]/leitura:right-12 lg:group-data-[mode=camera]/leitura:top-1/2 lg:group-data-[mode=camera]/leitura:w-[min(30vw,26rem)] lg:group-data-[mode=camera]/leitura:-translate-y-1/2 lg:group-data-[mode=camera]/leitura:bg-transparent lg:group-data-[mode=camera]/leitura:p-0 lg:group-data-[mode=camera]/leitura:shadow-none"
             >
-              <div data-note-item className="flex items-baseline gap-3 font-mono text-xs text-ink-soft">
-                <span className="tabular-nums text-ink">{String(i + 1).padStart(2, "0")}</span>
-                <span className="h-px flex-1 bg-ink/25" />
+              <div data-note-item className="flex items-baseline gap-3 font-mono text-xs text-paper/60">
+                <span className="tabular-nums text-marker">{String(i + 1).padStart(2, "0")}</span>
+                <span className="h-px flex-1 bg-paper/25" />
                 <span>Cláusula {c.n}ª</span>
               </div>
               <h3
@@ -444,14 +462,14 @@ export function LeituraGuiada() {
               </h3>
               <blockquote
                 data-note-item
-                className="mt-3 border-l-2 border-marker pl-3 text-sm italic leading-snug text-ink-soft lg:mt-5 lg:text-[15px]"
+                className="mt-3 border-l-2 border-marker pl-3 text-sm italic leading-snug text-paper/75 lg:mt-5 lg:text-[15px]"
               >
                 “{c.mark}”
               </blockquote>
-              <p data-note-item className="mt-3 text-base leading-snug lg:mt-5 lg:text-lg">
+              <p data-note-item className="mt-3 text-base leading-snug text-paper/90 lg:mt-5 lg:text-lg">
                 {c.stop!.body}
               </p>
-              <p data-note-item className="mt-3 font-mono text-[11px] text-ink-soft lg:mt-5 lg:text-xs">
+              <p data-note-item className="mt-3 font-mono text-[11px] text-paper/55 lg:mt-5 lg:text-xs">
                 ↳ {c.stop!.ref}
               </p>
             </li>
@@ -465,14 +483,14 @@ export function LeituraGuiada() {
         >
           <div className="mx-auto max-w-[1680px] px-4 sm:px-8 lg:px-12">
             <div className="lg:max-w-[46%]">
-              <p data-outro-item className="font-mono text-xs text-ink-soft sm:text-sm">
+              <p data-outro-item className="font-mono text-xs text-paper/60 sm:text-sm">
                 Quatro marcações em um contrato padrão.
               </p>
               <p
                 data-outro-item
                 className="font-display mt-4 text-[clamp(2.6rem,11vw,4rem)] leading-[0.88] lg:text-[clamp(3.5rem,6.2vw,7.5rem)]"
               >
-                Quantas estão <span className="whitespace-nowrap bg-[linear-gradient(transparent_55%,var(--color-marker)_55%)]">no seu?</span>
+                Quantas estão <span className="whitespace-nowrap bg-marker px-[0.06em] text-ink">no seu?</span>
               </p>
             </div>
           </div>

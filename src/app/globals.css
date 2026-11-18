@@ -2,12 +2,14 @@
 
 @theme inline {
   /* Papel, tinta e marca-texto. Nada além disso. */
-  --color-paper: #eeebe3;
-  --color-paper-2: #e4e0d5;
-  --color-ink: #121211;
-  --color-ink-soft: #55534d;
-  --color-ink-faint: #8f8b80;
-  --color-marker: #f1e23b;
+  /* Mais contraste: papel limpo, tinta quase preta, marca-texto de verdade. */
+  --color-paper: #f5f2eb;
+  --color-paper-2: #e6e0d3;
+  --color-ink: #0e0e0d;
+  --color-ink-2: #1b1a18;
+  --color-ink-soft: #3d3b36;
+  --color-ink-faint: #6f6b62;
+  --color-marker: #ffe014;
 
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-plex-mono);

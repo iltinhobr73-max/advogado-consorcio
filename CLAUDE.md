@@ -44,7 +44,8 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 
 O site é um **documento**, não um template de advocacia. Evitar o padrão genérico: fundo escuro, serifa clássica, dourado, botões em pílula, microcopy em caixa alta espaçada, "role" com linha, ícones de balança/martelo, gradientes radiais.
 
-- Paleta: papel (`paper`), tinta (`ink`) e marca-texto (`marker`). O amarelo só aparece onde algo é "destacado".
+- Paleta: papel (`paper`), tinta (`ink`) e marca-texto (`marker`). O amarelo só aparece onde algo é "destacado". Contraste alto: textos secundários em `ink-soft` (não mais claros que isso em texto corrido); amarelo vivo, usado como bloco (`bg-marker text-ink`) em títulos sobre fundo escuro.
+- A Leitura guiada acontece numa **mesa escura** (`bg-ink`, luz radial): o contrato é o único papel claro em cena, e em cada parada o resto do contrato apaga (opacity 0.14) para a cláusula da vez ficar em foco. Texto claro nunca pode cair sobre o papel — o enquadramento termina antes da coluna das notas.
 - Tipografia: Archivo condensado e pesado (`.font-display`) para display; IBM Plex Mono para notas de margem, numeração, metadados e notas de rodapé.
 - Vocabulário visual de contrato: tarjas, marca-texto, notas de rodapé (¹), numeração de linhas, "fl. 01", régua fina, cantos retos.
 - Cada seção deve ter uma ideia ligada ao assunto (consórcio/contrato), não só um layout.

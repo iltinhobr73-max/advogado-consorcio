@@ -146,7 +146,7 @@ export function Indice() {
         rel="noopener noreferrer"
         data-flutuante
         aria-label={`Conversar no WhatsApp: ${ESCRITORIO.whatsapp.exibicao}`}
-        className="group invisible fixed bottom-4 right-4 z-40 flex items-stretch bg-ink text-paper shadow-[0_10px_30px_-12px_rgba(18,18,17,0.5)] sm:bottom-6 sm:right-6"
+        className="group invisible fixed bottom-4 right-4 z-40 flex items-stretch bg-ink text-paper ring-1 ring-paper/20 shadow-[0_10px_30px_-12px_rgba(18,18,17,0.5)] sm:bottom-6 sm:right-6"
       >
         <span className="flex items-center px-4 py-3 font-mono text-xs">WhatsApp</span>
         <span className="grid w-11 place-items-center border-l border-paper/15 transition-colors group-hover:bg-marker group-hover:text-ink">

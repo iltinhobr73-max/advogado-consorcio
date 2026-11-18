@@ -21,8 +21,8 @@ const LINES: Word[][] = [
   [{ text: "em", marker: true }, { text: "destaque.", marker: true }],
 ];
 
-const INK = "#121211";
-const MARKER = "#f1e23b";
+const INK = "#0e0e0d";
+const MARKER = "#ffe014";
 // O contrato é textura, não conteúdo.
 const VIDEO_ALPHA = 0.13;
 
