@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
+import { ESCRITORIO } from "@/content/escritorio";
 
 /**
  * Conceito: "letras miúdas".
@@ -184,6 +185,7 @@ export function Hero() {
   return (
     <section
       ref={root}
+      id="top"
       aria-label="Apresentação"
       className="relative isolate flex h-svh min-h-[620px] w-full flex-col overflow-hidden bg-paper text-ink"
     >
@@ -213,7 +215,7 @@ export function Hero() {
         <div className="font-mono text-[11px] leading-none text-ink-soft sm:text-xs">
           <div className="flex items-baseline justify-between gap-4">
             <span data-hero-meta data-gsap-pending>
-              Análise de contrato — consórcio
+              {ESCRITORIO.sigla} · consórcios
             </span>
             <span data-hero-meta data-gsap-pending className="hidden sm:inline">
               Lei nº 11.795/2008 · CDC

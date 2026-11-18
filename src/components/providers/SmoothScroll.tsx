@@ -7,6 +7,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   type ReactNode,
 } from "react";
@@ -15,10 +16,18 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 type ScrollTarget = string | number | HTMLElement;
 type ScrollToFn = (target: ScrollTarget, options?: { offset?: number }) => void;
 
-const ScrollToContext = createContext<ScrollToFn>(() => {});
+type ScrollApi = { scrollTo: ScrollToFn; lock: () => void; unlock: () => void };
+
+const ScrollContext = createContext<ScrollApi>({ scrollTo: () => {}, lock: () => {}, unlock: () => {} });
 
 /** Rola até um alvo pelo Lenis (ou scroll nativo instantâneo com reduced motion). */
-export const useScrollTo = () => useContext(ScrollToContext);
+export const useScrollTo = () => useContext(ScrollContext).scrollTo;
+
+/** Trava/destrava o scroll da página (ex.: sobreposição aberta). */
+export const useScrollLock = () => {
+  const { lock, unlock } = useContext(ScrollContext);
+  return { lock, unlock };
+};
 
 /**
  * Instância única de Lenis do site, rodando no ticker do GSAP e
@@ -73,7 +82,16 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     window.scrollTo({ top: top + (options?.offset ?? 0), behavior: "instant" });
   }, []);
 
-  return (
-    <ScrollToContext.Provider value={scrollTo}>{children}</ScrollToContext.Provider>
-  );
+  const lock = useCallback(() => {
+    if (lenisRef.current) lenisRef.current.stop();
+    else document.documentElement.style.overflow = "hidden";
+  }, []);
+  const unlock = useCallback(() => {
+    if (lenisRef.current) lenisRef.current.start();
+    else document.documentElement.style.overflow = "";
+  }, []);
+
+  const api = useMemo(() => ({ scrollTo, lock, unlock }), [scrollTo, lock, unlock]);
+
+  return <ScrollContext.Provider value={api}>{children}</ScrollContext.Provider>;
 }

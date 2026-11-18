@@ -19,9 +19,15 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Advocacia em Consórcios",
+  title: "Advogado de consórcios em Brasília | LGA Advogados",
   description:
-    "Análise jurídica de contratos de consórcio: taxa de administração, fundo de reserva, multa por desistência, promessa de contemplação e restituição de valores.",
+    "Análise jurídica de contratos de consórcio: restituição de valores, taxa de administração, multa por desistência, promessa de contemplação e golpes. Atendimento online. OAB/DF 48.163.",
+  openGraph: {
+    title: "Estava no contrato. Só não estava em destaque.",
+    description: "Envie seu contrato de consórcio: lemos cláusula por cláusula e respondemos por escrito.",
+    locale: "pt_BR",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {

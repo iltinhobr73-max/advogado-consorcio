@@ -10,6 +10,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB por arquivo
 const MAX_FILES = 8;
 const ACCEPTED = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const SITUACOES = ["pagando", "desisti", "contemplado", "promessa"];
+const VALORES = ["ate-10", "10-20", "21-40", "41-60", "60+"];
 
 function bad(field: string) {
   return Response.json({ ok: false, error: "invalid", field }, { status: 400 });
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   const whatsapp = String(data.get("whatsapp") ?? "").replace(/\D/g, "");
   const administradora = String(data.get("administradora") ?? "").trim();
   const situacao = String(data.get("situacao") ?? "");
+  const valor = String(data.get("valor") ?? "");
   const consentimento = data.get("consentimento") === "on";
   const arquivos = data.getAll("contrato").filter((f): f is File => f instanceof File && f.size > 0);
 
@@ -34,6 +36,7 @@ export async function POST(request: Request) {
   if (whatsapp.length < 10 || whatsapp.length > 13) return bad("whatsapp");
   if (administradora.length > 120) return bad("administradora");
   if (!SITUACOES.includes(situacao)) return bad("situacao");
+  if (!VALORES.includes(valor)) return bad("valor");
   if (!consentimento) return bad("consentimento");
   if (arquivos.length > MAX_FILES) return bad("contrato");
   for (const f of arquivos) {
@@ -50,6 +53,7 @@ export async function POST(request: Request) {
   payload.set("whatsapp", whatsapp);
   payload.set("administradora", administradora);
   payload.set("situacao", situacao);
+  payload.set("valor_pago", valor);
   payload.set("recebido_em", new Date().toISOString());
   arquivos.forEach((f) => payload.append("contrato", f, f.name));
 

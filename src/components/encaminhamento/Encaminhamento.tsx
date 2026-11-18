@@ -3,9 +3,10 @@
 import { useRef, useState, type FormEvent } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
+import { ESCRITORIO, FAIXAS_VALOR, WHATSAPP_URL } from "@/content/escritorio";
 
 /**
- * fl. 03 — Encaminhamento.
+ * fl. 07 — Encaminhamento.
  * A última folha do documento: um termo para preencher. As linhas dos
  * campos são "traçadas" no papel quando a folha chega; ao enviar, um
  * carimbo de RECEBIDO marca a folha.
@@ -153,7 +154,7 @@ export function Encaminhamento() {
           <div className="flex items-baseline justify-between gap-4">
             <span>Encaminhamento</span>
             <span className="hidden sm:inline">Termo de envio para análise</span>
-            <span>fl. 03</span>
+            <span>fl. 07</span>
           </div>
           <div data-enc-rule className="mt-3 h-px w-full bg-ink" />
         </div>
@@ -189,6 +190,32 @@ export function Encaminhamento() {
                 </li>
               ))}
             </ol>
+
+            <dl className="mt-14 max-w-[30rem] font-mono text-[12px] sm:text-[13px]">
+              {[
+                { k: "WhatsApp", v: ESCRITORIO.whatsapp.exibicao, href: WHATSAPP_URL },
+                { k: "E-mail", v: ESCRITORIO.email, href: `mailto:${ESCRITORIO.email}` },
+                { k: "Horário", v: ESCRITORIO.horario },
+                { k: "Endereço", v: `${ESCRITORIO.endereco.linha1} — ${ESCRITORIO.endereco.linha2}` },
+              ].map((c) => (
+                <div key={c.k} data-enc-item data-gsap-pending className="grid grid-cols-[6.5rem_1fr] gap-3 border-t border-ink/15 py-3">
+                  <dt className="text-ink-soft">{c.k}</dt>
+                  <dd className="break-words text-ink">
+                    {c.href ? (
+                      <a
+                        href={c.href}
+                        {...(c.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                        className="underline decoration-ink/30 underline-offset-4 hover:bg-marker hover:decoration-ink"
+                      >
+                        {c.v}
+                      </a>
+                    ) : (
+                      c.v
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
           {/* ---------- O termo (formulário) ---------- */}
@@ -224,6 +251,26 @@ export function Encaminhamento() {
                   title="DDD + número, ex.: (61) 99999-0000"
                 />
                 <Field label="Administradora" name="administradora" placeholder="opcional" maxLength={120} />
+
+                <label className="block">
+                  <span className="font-mono text-[11px] text-ink-soft">Quanto já pagou no consórcio</span>
+                  <select
+                    name="valor"
+                    required
+                    defaultValue=""
+                    className="mt-1 block w-full cursor-pointer appearance-none bg-transparent py-1.5 text-[17px] text-ink outline-none invalid:text-ink-faint/70"
+                  >
+                    <option value="" disabled>
+                      Selecione uma faixa
+                    </option>
+                    {FAIXAS_VALOR.map((f) => (
+                      <option key={f.value} value={f.value} className="text-ink">
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span data-line className="block h-px w-full bg-ink/40" />
+                </label>
 
                 <div>
                   <p className="font-mono text-[11px] text-ink-soft">Situação do consórcio</p>
@@ -341,17 +388,19 @@ export function Encaminhamento() {
           <div className="grid gap-10 font-mono text-[11px] text-ink-soft sm:grid-cols-2 sm:gap-16">
             <div>
               <span data-sig-line className="block h-px w-full bg-ink" />
-              <p className="mt-2">Local e data</p>
+              <p className="mt-2">{ESCRITORIO.cidade}, data</p>
             </div>
             <div>
               <span data-sig-line className="block h-px w-full bg-ink" />
-              <p className="mt-2">[Nome do escritório] · OAB/UF nº [—]</p>
+              <p className="mt-2">
+                {ESCRITORIO.advogado} · {ESCRITORIO.oabs.join(" · ")}
+              </p>
             </div>
           </div>
 
           <div className="mt-14 flex flex-col gap-6 border-t border-ink/15 pt-5 font-mono text-[11px] leading-relaxed text-ink-faint sm:flex-row sm:items-start sm:justify-between">
             <p className="max-w-[70ch]">
-              Conteúdo de caráter informativo. Não há promessa de resultado: cada contrato é analisado
+              © {ESCRITORIO.nome}. Conteúdo de caráter informativo. Não há promessa de resultado: cada contrato é analisado
               individualmente. O contrato exibido nesta página é fictício. Publicidade conforme o
               Provimento nº 205/2021 do Conselho Federal da OAB.
             </p>

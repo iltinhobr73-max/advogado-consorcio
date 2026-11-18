@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Advocacia em consórcios — site
 
-## Getting Started
+Site em formato de **documento**: cada seção é uma folha (fl. 01 a fl. 07) de um contrato que o escritório lê pelo cliente.
 
-First, run the development server:
+| Folha | Seção |
+|---|---|
+| fl. 01 | Hero — frase tarjada que vira marca-texto, contrato rolando ao fundo |
+| fl. 02 | Leitura guiada — seção fixada; uma "câmera" percorre o contrato e para em 4 cláusulas |
+| fl. 03 | Dos pedidos — serviços (a, b, c) e modo de atendimento (I–IV) |
+| fl. 04 | Qualificação — sobre o advogado |
+| fl. 05 | Declarações — avaliações de clientes |
+| fl. 06 | Quesitos — perguntas frequentes |
+| fl. 07 | Encaminhamento — formulário com envio do contrato + canais de contato |
+
+Stack: Next.js (App Router) · Tailwind CSS v4 · GSAP + ScrollTrigger · Lenis. Regras de animação e direção de arte em [`CLAUDE.md`](./CLAUDE.md).
+
+## Rodar
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Antes de publicar
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Autorização do escritório.** Os dados em `src/content/escritorio.ts` (nome, OAB, contatos, depoimentos) foram preenchidos a partir do site público atual, como proposta.
+2. **Envio do formulário.** Defina `CONTACT_WEBHOOK_URL` (webhook de automação, CRM ou serviço de e-mail que aceite `multipart/form-data`). Sem ela, o formulário avisa que o envio não está ativo.
+3. **Foto do advogado.** Coloque `public/media/advogado.jpg` e mude `temFoto` para `true` em `escritorio.ts`.
+4. **Vídeo do hero.** `public/media/contrato.mp4` é provisório (gerado).
+5. **Revisão jurídica** das referências legais (`src/content/contrato.ts`) e dos textos (`escritorio.ts`).

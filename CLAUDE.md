@@ -32,7 +32,11 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/components/hero/Hero.tsx` — hero "letras miúdas": vídeo do contrato, título tarjado que vira marca-texto, "(continua na próxima página)" como scroll indicator.
 - `src/components/leitura/LeituraGuiada.tsx` — seção com pin: "câmera" percorre um contrato e para em 4 cláusulas. Câmera = timeline com scrub suavizado; anotações = timelines em tempo real (stagger 0.2, power3.out) disparadas pela posição da câmera.
 - `src/content/contrato.ts` — texto do contrato fictício e das anotações (paradas da câmera).
-- `src/components/encaminhamento/Encaminhamento.tsx` — fl. 03: termo de encaminhamento (formulário), carimbo "RECEBIDO" e fecho do documento.
+- `src/content/escritorio.ts` — **todos os dados do escritório** (nome, OAB, contatos, pedidos, qualificação, depoimentos, perguntas, sumário). Altere aqui, não nos componentes.
+- `src/components/doc/Folha.tsx` — `FolhaHeader` (cabeçalho mono + régua) e `revealFolha()` (entrada padrão: régua expo.inOut, `[data-item]` com stagger 0.2 power3.out, `[data-draw]` linhas traçadas). Use em toda folha nova.
+- Folhas: hero fl. 01 · `leitura/` fl. 02 · `pedidos/` fl. 03 · `qualificacao/` fl. 04 · `declaracoes/` fl. 05 · `quesitos/` fl. 06 · `encaminhamento/` fl. 07.
+- `src/components/indice/Indice.tsx` — "Sumário" flutuante (índice com folhas, trava o scroll via `useScrollLock`) + aba de WhatsApp. Renderizado DEPOIS das seções (precisa do pin da leitura). No mobile some durante a Leitura guiada.
+- `src/components/encaminhamento/Encaminhamento.tsx` — fl. 07: termo de encaminhamento (formulário), carimbo "RECEBIDO" e fecho do documento.
 - `src/app/api/contato/route.ts` — recebe o formulário e repassa para `CONTACT_WEBHOOK_URL`. Sem essa variável responde 503 `not_configured` e o site avisa que o envio não está ativo (nunca finge sucesso).
 - `public/media/contrato.mp4` / `contrato-poster.jpg` — contrato de consórcio fictício rolando em loop (gerado). Pode ser trocado por filmagem real de um contrato.
 
@@ -44,7 +48,8 @@ O site é um **documento**, não um template de advocacia. Evitar o padrão gen�
 - Tipografia: Archivo condensado e pesado (`.font-display`) para display; IBM Plex Mono para notas de margem, numeração, metadados e notas de rodapé.
 - Vocabulário visual de contrato: tarjas, marca-texto, notas de rodapé (¹), numeração de linhas, "fl. 01", régua fina, cantos retos.
 - Cada seção deve ter uma ideia ligada ao assunto (consórcio/contrato), não só um layout.
-- Cabeçalho de documento em cada seção (mono, régua fina) com numeração de folha contínua: hero = fl. 01, leitura guiada = fl. 02, e assim por diante.
+- Cabeçalho de documento em cada seção (mono, régua fina) com numeração de folha contínua (fl. 01 a fl. 07). Ao inserir uma folha, renumere as seguintes e o `SUMARIO`.
+- Cada seção traduz um bloco comum de site de advocacia para o vocabulário jurídico: serviços = pedidos (a, b, c), diferenciais = incisos (I–IV), sobre = qualificação, depoimentos = declarações assinadas, FAQ = quesitos, contato = termo de encaminhamento.
 
 ## Armadilhas conhecidas
 
@@ -54,6 +59,11 @@ O site é um **documento**, não um template de advocacia. Evitar o padrão gen�
 - **Comprimento de pin/scrub em altura estável**: use a altura de um elemento `h-svh` (ex.: `stage.clientHeight`), nunca `window.innerHeight` — no celular ele muda com a barra de endereço e o pin muda de tamanho a cada refresh.
 - `ScrollTrigger.config({ ignoreMobileResize: true })` fica em `src/lib/gsap.ts` (resize só de altura no touch não recalcula triggers).
 - Elementos com fundo opaco empilhados (ex.: notas no mobile) devem ter a visibilidade controlada pela própria timeline, não só os filhos.
+
+## Conteúdo e OAB
+
+- Os dados reais do escritório estão em `escritorio.ts` como **proposta**. O site só pode ir ao ar pelo escritório ou com autorização dele.
+- Não usar números de clientes/casos, "o mais rápido possível", "garantimos" ou similares (Provimento 205/2021).
 
 ## Convenções
 
