@@ -20,7 +20,7 @@ export const ESCRITORIO = {
   },
   cidade: "Brasília/DF",
   /** Foto do advogado: coloque o arquivo em public/media/advogado.jpg e troque para true. */
-  temFoto: false,
+  temFoto: true,
 } as const;
 
 export const WHATSAPP_URL = `https://wa.me/${ESCRITORIO.whatsapp.e164}?text=${encodeURIComponent(

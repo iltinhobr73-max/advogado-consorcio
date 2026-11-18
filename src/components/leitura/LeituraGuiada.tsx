@@ -2,52 +2,53 @@
 
 import { useRef } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { useScrollTo } from "@/components/providers/SmoothScroll";
 import { CLAUSES, STOPS } from "@/content/contrato";
 
 /**
- * "Leitura guiada": seção fixada (pin) em que uma câmera percorre um
- * contrato de consórcio. O movimento da câmera é atrelado ao scroll com
- * inércia (scrub suavizado); as anotações de cada parada rodam em tempo
- * real, em sequência de 0.2s, com power3.out.
+ * fl. 02 — Leitura guiada: "a letra miúda, em letra graúda".
+ *
+ * Seção fixada (pin). Uma câmera faz um travelling horizontal por 6 planos:
+ * abertura → 4 cláusulas → fecho. Em cada cláusula, a frase aparece em
+ * letra miúda (mono) e o trecho problemático em tipografia gigante, que o
+ * marca-texto atravessa.
+ *
+ * Câmera = timeline com scrub suavizado: entre planos ela recua de leve e
+ * volta (dolly) e o numeral gigante de cada plano corre em outra
+ * velocidade (profundidade). Conteúdo de cada plano = timeline em tempo
+ * real (stagger 0.2, power3.out) disparada quando a câmera chega.
+ *
+ * Trilho com 6 planos: largura 600% e cada plano 1/6 (classes literais —
+ * o Tailwind só gera classes escritas por extenso). Mudou o nº de planos?
+ * Ajuste w-[600%] e w-1/6.
  */
 
 const STAGGER = 0.2;
 const EASE_IN = "power3.out";
-// Toda saída dura pelo menos isso (segundos).
-const EXIT = 0.7;
+const INK = "#0e0e0d";
+const PAPER = "#f5f2eb";
 
 // Unidades de tempo da timeline da câmera (mapeadas no scroll do pin).
-const T_INTRO = 0.6; // contrato na mesa, antes do mergulho
-const T_TRAVEL = 1; // deslocamento entre enquadramentos
-const T_HOLD = 1.15; // câmera parada na cláusula
-const T_OUTRO = 1.3; // recuo final
-const T_END_HOLD = 0.7;
+const T_OPEN = 0.9; // plano de abertura parado
+const T_TRAVEL = 1.1; // travelling entre planos
+const T_HOLD = 1.25; // câmera parada num plano
+const T_END = 0.6;
 
-type Pose = { x: number; y: number; scale: number; rotation: number; rotationX: number };
-
-/** Posição de um elemento no sistema de coordenadas do documento (sem transformações). */
-function offsetWithin(el: HTMLElement, ancestor: HTMLElement) {
-  let x = 0;
-  let y = 0;
-  let node: HTMLElement | null = el;
-  while (node && node !== ancestor) {
-    x += node.offsetLeft;
-    y += node.offsetTop;
-    node = node.offsetParent as HTMLElement | null;
-  }
-  return { x, y, w: el.offsetWidth, h: el.offsetHeight };
-}
+const ORD = ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "7ª", "8ª", "9ª", "10ª", "11ª"];
 
 export function LeituraGuiada() {
   const root = useRef<HTMLElement>(null);
+  const scrollTo = useScrollTo();
 
   useGSAP(
     () => {
       const q = gsap.utils.selector(root);
       const section = root.current!;
       const stage = q("[data-stage]")[0] as HTMLElement;
-      const doc = q("[data-doc]")[0] as HTMLElement;
       const mm = gsap.matchMedia();
+
+      // Seta do "role" cutucando para a direita.
+      gsap.to(q("[data-nudge]"), { x: 8, duration: 1.1, ease: "power3.inOut", yoyo: true, repeat: -1 });
 
       mm.add(
         {
@@ -57,172 +58,67 @@ export function LeituraGuiada() {
         },
         (ctx) => {
           const { reduce, desktop } = ctx.conditions as { reduce: boolean; desktop: boolean };
-
           gsap.set(q("[data-gsap-pending]"), { autoAlpha: 1 });
 
-          // Sem movimento: versão estática (notas em grade, marcações aplicadas).
           if (reduce) {
             section.dataset.mode = "static";
-            gsap.set(q("[data-mark]"), { backgroundSize: "100% 100%" });
             return;
           }
-
           section.dataset.mode = "camera";
 
-          const notes = q("[data-note]");
-          const marks = q("[data-mark]");
-          const stops = q("[data-stop]");
+          const camera = q("[data-camera]")[0];
+          const track = q("[data-track]")[0];
+          const panels = q("[data-panel]") as HTMLElement[];
+          const depths = panels.map((p) => p.querySelector("[data-depth]"));
+          const W = () => stage.clientWidth;
 
-          /* ---------- Enquadramentos (recalculados a cada refresh) ---------- */
-          const docSize = () => ({ w: doc.offsetWidth, h: doc.offsetHeight });
-
-          const overview = (flat: boolean): Pose => {
-            const W = stage.clientWidth;
-            const H = stage.clientHeight;
-            const { w, h } = docSize();
-            if (desktop) {
-              const s = Math.min((H * 0.84) / h, (W * 0.44) / w);
-              return {
-                x: W * 0.71 - (w * s) / 2,
-                y: (H - h * s) / 2 + H * 0.02,
-                scale: s,
-                rotation: flat ? 0 : -3.5,
-                rotationX: flat ? 0 : 14,
-              };
-            }
-            const s = Math.min((H * 0.5) / h, (W * 0.78) / w);
-            return {
-              x: (W - w * s) / 2,
-              y: H * 0.44,
-              scale: s,
-              rotation: flat ? 0 : -3,
-              rotationX: flat ? 0 : 12,
-            };
-          };
-
-          const framing = (i: number): Pose => {
-            const W = stage.clientWidth;
-            const H = stage.clientHeight;
-            const r = offsetWithin(stops[i] as HTMLElement, doc);
-            // Desktop: cláusula à esquerda, anotação na coluna da direita.
-            // Mobile: cláusula no terço superior, anotação embaixo.
-            // Desktop: o papel termina antes da coluna das notas (texto claro
-            // sobre papel claro some). Mobile: cláusula no terço superior.
-            const frameX = desktop ? W * 0.3 : W * 0.5;
-            const frameY = desktop ? H * 0.52 : H * 0.3;
-            const targetW = desktop ? W * 0.54 : W * 0.93;
-            const s = gsap.utils.clamp(0.4, 2.6, targetW / r.w);
-            // Pequena variação de ângulo por parada: câmera na mão, não slide.
-            const tilt = [-1.2, 0.9, -0.6, 1.1][i] ?? 0;
-            return {
-              x: frameX - (r.x + r.w / 2) * s,
-              y: frameY - (r.y + r.h / 2) * s,
-              scale: s,
-              rotation: tilt,
-              rotationX: 0,
-            };
-          };
-
-          const poseTween = (get: () => Pose) => ({
-            x: () => get().x,
-            y: () => get().y,
-            scale: () => get().scale,
-            rotation: () => get().rotation,
-            rotationX: () => get().rotationX,
+          /* ---------- Conteúdo de cada plano (tempo real) ---------- */
+          const panelTls = panels.map((panel) => {
+            const items = panel.querySelectorAll("[data-pi]");
+            const marks = panel.querySelectorAll("[data-mark]");
+            gsap.set(items, { autoAlpha: 0, y: 30 });
+            gsap.set(marks, { backgroundSize: "0% 100%", color: PAPER });
+            return gsap
+              .timeline({ paused: true })
+              .to(items, { autoAlpha: 1, y: 0, duration: 0.9, ease: EASE_IN, stagger: STAGGER })
+              // o marca-texto atravessa a frase gigante; a tinta escurece junto
+              .to(marks, { backgroundSize: "100% 100%", color: INK, duration: 1.0, ease: EASE_IN, stagger: STAGGER }, 0.6);
           });
-
-          gsap.set(doc, { transformOrigin: "0 0", transformPerspective: 2200, ...overview(false) });
-
-          /* ---------- Painéis (notas + fecho): entrada e saída em tempo real ---------- */
-          type Panel = { el: HTMLElement; tl: gsap.core.Timeline; hide?: gsap.core.Tween };
-          const makePanel = (el: HTMLElement, items: Element[] | NodeListOf<Element>): Panel => {
-            gsap.set(el, { autoAlpha: 0 });
-            gsap.set(items, { autoAlpha: 0, y: 26 });
-            return {
-              el,
-              tl: gsap
-                .timeline({ paused: true })
-                .fromTo(el, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6, ease: EASE_IN }, 0)
-                .to(items, { autoAlpha: 1, y: 0, duration: 0.8, ease: EASE_IN, stagger: STAGGER }, 0.1),
-            };
-          };
-          // índices 0..STOPS.length-1 = notas; STOPS.length = fecho
-          const panels: Panel[] = [
-            ...notes.map((n) => makePanel(n, n.querySelectorAll("[data-note-item]"))),
-            makePanel(q("[data-outro]")[0], q("[data-outro-item]")),
-          ];
-
-          // Saída própria (não é a entrada rebobinada em 2×): o painel inteiro
-          // apaga em EXIT segundos e só então volta ao estado inicial.
-          let exitEndsAt = 0; // gsap.ticker.time em que a última saída termina
-          const hidePanel = (p: Panel) => {
-            p.tl.pause();
-            exitEndsAt = gsap.ticker.time + EXIT;
-            p.hide = gsap.to(p.el, {
+          const shown = panels.map(() => false);
+          const setShown = (i: number, on: boolean) => {
+            if (shown[i] === on) return;
+            shown[i] = on;
+            const tl = panelTls[i];
+            if (on) {
+              tl.play(0);
+              return;
+            }
+            // saída própria: some em 0.7s (não é a entrada rebobinada acelerada)
+            tl.pause();
+            gsap.to(panels[i].querySelectorAll("[data-pi]"), {
               autoAlpha: 0,
-              duration: EXIT,
+              duration: 0.7,
               ease: "power3.in",
+              overwrite: true,
               onComplete: () => {
-                p.tl.pause(0);
-                gsap.set(p.el, { autoAlpha: 0 });
+                if (!shown[i]) tl.pause(0);
               },
             });
           };
-          // A entrada espera a saída anterior terminar: um painel nunca atropela o outro.
-          const showPanel = (p: Panel) => {
-            p.hide?.kill();
-            const wait = Math.max(0, exitEndsAt - gsap.ticker.time);
-            p.tl.pause(0).delay(wait).restart(true);
-          };
 
-          const markTls = marks.map((m) =>
-            gsap.fromTo(
-              m,
-              { backgroundSize: "0% 100%" },
-              { backgroundSize: "100% 100%", duration: 0.9, ease: EASE_IN, paused: true },
-            ),
-          );
-
-          /* ---------- Intro: título entra quando a seção chega ---------- */
-          gsap.set(q("[data-intro-item]"), { autoAlpha: 0, y: 26 });
-          gsap.to(q("[data-intro-item]"), {
-            autoAlpha: 1,
-            y: 0,
-            duration: 0.8,
-            ease: EASE_IN,
-            stagger: STAGGER,
-            scrollTrigger: { trigger: section, start: "top 65%", toggleActions: "play none none reverse" },
+          // Abertura: entra quando a seção chega na tela.
+          ScrollTrigger.create({
+            trigger: section,
+            start: "top 65%",
+            onEnter: () => setShown(0, true),
+            onLeaveBack: () => setShown(0, false),
           });
 
-          /* ---------- Câmera ---------- */
-          const holds: { start: number; end: number }[] = [];
+          /* ---------- Cabeçalho: contador e réguas ---------- */
           const counter = q("[data-counter]")[0];
           const ticks = q("[data-tick]");
-          gsap.set(ticks, { scaleX: 0 });
-          let active = -1; // anotação visível (-1 = nenhuma, STOPS.length = fecho)
+          gsap.set(ticks, { scaleX: 0, transformOrigin: "0% 50%" });
           let reached = -1;
-          const markOn = marks.map(() => false);
-
-          // Foco de câmera: na parada, o resto do contrato apaga e só a cláusula da vez fica acesa.
-          const dims = q("[data-dim]");
-          const focusOn = (target: Element | null) =>
-            gsap.to(dims, {
-              opacity: (_k: number, el: Element) => (!target || el === target ? 1 : 0.14),
-              duration: 0.8,
-              ease: "power3.inOut",
-              overwrite: "auto",
-            });
-
-          const setActive = (next: number) => {
-            if (next === active) return;
-            const prev = active;
-            active = next;
-            focusOn(next >= 0 && next < STOPS.length ? stops[next] : null);
-            if (prev >= 0) hidePanel(panels[prev]);
-            if (next >= 0) showPanel(panels[next]);
-          };
-
-          // Contador e réguas: quantas cláusulas a câmera já leu.
           const setReached = (n: number) => {
             if (n === reached) return;
             reached = n;
@@ -232,88 +128,47 @@ export function LeituraGuiada() {
             );
           };
 
-          const camera = gsap.timeline({
+          /* ---------- Câmera ---------- */
+          const arrivals: number[] = [0]; // tempo em que a câmera chega a cada plano
+          gsap.set(track, { x: 0 });
+          gsap.set(camera, { scale: 1, transformOrigin: "50% 50%" });
+
+          const cam = gsap.timeline({
             defaults: { ease: "power3.inOut" },
             onUpdate() {
-              const t = camera.time();
-              // Marcações ficam depois que a câmera passou por elas.
-              holds.forEach((h, i) => {
-                const want = t >= h.start;
-                if (want !== markOn[i]) {
-                  markOn[i] = want;
-                  if (want) markTls[i].play();
-                  else markTls[i].reverse();
-                }
-              });
-              let next = -1;
-              holds.forEach((h, i) => {
-                if (t >= h.start - 0.05 && t < h.end) next = i;
-              });
-              if (t >= camera.duration() - T_END_HOLD - 0.25) next = STOPS.length;
-              setActive(next);
-              setReached(holds.filter((h) => t >= h.start - 0.05).length);
+              const t = cam.time();
+              arrivals.forEach((a, i) => i > 0 && setShown(i, t >= a - 0.08));
+              setReached(arrivals.slice(1, STOPS.length + 1).filter((a) => t >= a - 0.08).length);
             },
             scrollTrigger: {
               trigger: section,
               start: "top top",
-              // Comprimento do pin baseado na altura do palco (100svh), que é
-              // estável no celular — innerHeight muda com a barra de endereço.
-              // No desktop svh === innerHeight, então nada muda lá.
-              end: () => "+=" + stage.clientHeight * (desktop ? 6 : 5.2),
+              // altura do palco (100svh): estável no celular. Sem anticipatePin (ver CLAUDE.md).
+              end: () => "+=" + stage.clientHeight * (desktop ? 6.5 : 5.5),
               pin: true,
-              // Inércia: a câmera "alcança" o scroll, em vez de grudar nele.
               scrub: 1.1,
               invalidateOnRefresh: true,
-              // Sem anticipatePin: ele prevê o pin pela velocidade do scroll
-              // nativo, mas aqui quem chama ScrollTrigger.update é o Lenis.
-              // Em flicks no touch, a previsão errava e o palco saltava ~110px.
             },
           });
 
-          // Intro: contrato na mesa; o título sai de quadro quando a câmera mergulha.
-          camera.to({}, { duration: T_INTRO });
-          camera.to(
-            q("[data-intro]"),
-            { autoAlpha: 0, x: desktop ? -60 : 0, y: desktop ? 0 : -40, duration: T_TRAVEL * 0.6, ease: "power3.in" },
-            T_INTRO,
-          );
-
-          STOPS.forEach((_, i) => {
-            camera.to(doc, { ...poseTween(() => framing(i)), duration: T_TRAVEL }, i === 0 ? T_INTRO : ">");
-            const start = camera.duration();
-            // Durante a parada, um leve "drift" — a câmera nunca fica totalmente morta.
-            camera.to(
-              doc,
-              {
-                x: () => framing(i).x - (desktop ? 18 : 8),
-                y: () => framing(i).y - 6,
-                duration: T_HOLD,
-                ease: "power3.inOut",
-              },
-              ">",
-            );
-            holds.push({ start, end: camera.duration() });
-          });
-
-          // Recuo: o contrato inteiro, plano, com tudo marcado.
-          camera.to(doc, { ...poseTween(() => overview(true)), duration: T_OUTRO, ease: "power3.inOut" });
-          camera.to({}, { duration: T_END_HOLD });
-
-          // Vinheta sutil durante o mergulho: profundidade de campo "barata".
-          camera.fromTo(
-            q("[data-vignette]"),
-            { autoAlpha: 0 },
-            { autoAlpha: 1, duration: T_TRAVEL, ease: "power3.out" },
-            T_INTRO,
-          );
-          camera.to(
-            q("[data-vignette]"),
-            { autoAlpha: 0, duration: T_OUTRO, ease: "power3.in" },
-            camera.duration() - T_OUTRO - T_END_HOLD,
-          );
+          cam.to({}, { duration: T_OPEN });
+          for (let i = 1; i < panels.length; i++) {
+            const at = cam.duration();
+            // travelling lateral
+            cam.to(track, { x: () => -W() * i, duration: T_TRAVEL }, at);
+            // dolly: a câmera recua no meio do movimento e volta ao chegar
+            cam.to(camera, { scale: desktop ? 0.86 : 0.92, duration: T_TRAVEL / 2, ease: "power3.out" }, at);
+            cam.to(camera, { scale: 1, duration: T_TRAVEL / 2, ease: "power3.in" }, at + T_TRAVEL / 2);
+            // profundidade: o numeral do plano que chega e o do que sai correm em outra velocidade
+            if (depths[i]) cam.fromTo(depths[i], { x: () => W() * 0.45 }, { x: 0, duration: T_TRAVEL, immediateRender: true }, at);
+            if (depths[i - 1]) cam.to(depths[i - 1], { x: () => -W() * 0.45, duration: T_TRAVEL }, at);
+            arrivals.push(at + T_TRAVEL);
+            // parada com respiração: a câmera avança um pouco, nunca fica totalmente morta
+            cam.to(camera, { scale: 1.025, duration: T_HOLD }, at + T_TRAVEL);
+          }
+          cam.to({}, { duration: T_END });
 
           ScrollTrigger.refresh();
-
           return () => {
             delete section.dataset.mode;
           };
@@ -330,169 +185,218 @@ export function LeituraGuiada() {
       aria-labelledby="leitura-titulo"
       className="group/leitura relative bg-ink text-paper"
     >
-      <div
-        data-stage
-        className="relative w-full overflow-hidden group-data-[mode=camera]/leitura:h-svh"
-      >
-        {/* ---------- Cabeçalho de documento (continuidade do hero) ---------- */}
-        {/* Mesa escura com uma luz sobre o contrato */}
+      <div data-stage className="relative w-full overflow-hidden group-data-[mode=camera]/leitura:h-svh">
+        {/* Mesa escura com luz */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_65%_70%_at_62%_48%,#2c2a25_0%,#151513_55%,#0b0b0a_100%)] group-data-[mode=camera]/leitura:block"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_75%_at_50%_45%,#24231f_0%,#121211_60%,#0a0a09_100%)]"
         />
-        <div className="pointer-events-none relative z-20 bg-ink"><div className="mx-auto max-w-[1680px] px-4 pb-px pt-5 font-mono text-[11px] leading-none text-paper/60 sm:px-8 sm:text-xs lg:px-12">
-          <div className="flex items-baseline justify-between gap-4">
-            <span>Leitura guiada</span>
-            <span className="flex items-center gap-3">
-              <span className="hidden gap-1 sm:group-data-[mode=camera]/leitura:flex" aria-hidden>
-                {STOPS.map((s) => (
-                  <span key={s.n} className="relative block h-px w-6 bg-paper/25">
-                    <span data-tick className="absolute inset-0 origin-left bg-marker" />
-                  </span>
-                ))}
-              </span>
-              <span className="hidden group-data-[mode=camera]/leitura:inline">
-                cláusula <span data-counter>0</span>/{STOPS.length}
-              </span>
-            </span>
-            <span>fl. 02</span>
-          </div>
-          <div className="mt-3 h-px w-full bg-paper/50" />
-        </div></div>
 
-        {/* ---------- Intro ---------- */}
-        <div
-          data-intro
-          className="relative z-10 mx-auto max-w-[1680px] px-4 pt-14 sm:px-8 lg:px-12 group-data-[mode=camera]/leitura:pointer-events-none group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:top-0 lg:group-data-[mode=camera]/leitura:top-1/2 lg:group-data-[mode=camera]/leitura:-translate-y-1/2 lg:group-data-[mode=camera]/leitura:pt-0"
-        >
-          <div className="max-w-[min(40rem,46%)] max-lg:max-w-none">
-            <p data-intro-item data-gsap-pending className="font-mono text-xs text-paper/60 sm:text-sm">
-              Um contrato de consórcio comum. Onze cláusulas.
-            </p>
-            <h2
-              id="leitura-titulo"
-              data-intro-item
-              data-gsap-pending
-              className="font-display mt-4 text-[clamp(2.6rem,11vw,4rem)] leading-[0.88] lg:text-[clamp(3.5rem,6.2vw,7.5rem)]"
-            >
-              Quatro delas <span className="bg-marker px-[0.06em] text-ink">pesam</span> no seu bolso.
-            </h2>
-            <p data-intro-item data-gsap-pending className="mt-5 max-w-[38ch] text-base leading-snug text-paper/70 lg:text-lg">
-              Role devagar. A gente vai lendo junto com você.
-            </p>
+        {/* ---------- Cabeçalho ---------- */}
+        <div className="pointer-events-none relative z-20">
+          <div className="mx-auto max-w-[1680px] px-4 pt-5 font-mono text-[11px] leading-none text-paper/60 sm:px-8 sm:text-xs lg:px-12">
+            <div className="flex items-baseline justify-between gap-4">
+              <span>Leitura guiada</span>
+              <span className="flex items-center gap-3">
+                <span className="hidden gap-1 sm:group-data-[mode=camera]/leitura:flex" aria-hidden>
+                  {STOPS.map((s) => (
+                    <span key={s.n} className="relative block h-px w-6 bg-paper/25">
+                      <span data-tick className="absolute inset-0 bg-marker" />
+                    </span>
+                  ))}
+                </span>
+                <span className="hidden group-data-[mode=camera]/leitura:inline">
+                  cláusula <span data-counter>0</span>/{STOPS.length}
+                </span>
+              </span>
+              <span>fl. 02</span>
+            </div>
+            <div className="mt-3 h-px w-full bg-paper/50" />
           </div>
         </div>
 
-        {/* ---------- O contrato (o que a câmera filma) ---------- */}
+        {/* ---------- Câmera → trilho de 6 planos ---------- */}
         <div
-          aria-hidden
-          className="hidden group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-0 group-data-[mode=camera]/leitura:block"
+          data-camera
+          className="relative group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-0"
         >
-          <article
-            data-doc
-            className="absolute left-0 top-0 w-[500px] bg-paper px-[36px] text-ink pb-[60px] pt-[48px] text-[15px] lg:w-[880px] lg:px-[72px] lg:pb-[80px] lg:pt-[64px] leading-[1.62] shadow-[0_2px_0_rgba(0,0,0,0.3),0_40px_80px_-20px_rgba(0,0,0,0.7),0_80px_160px_-40px_rgba(0,0,0,0.6)] will-change-transform"
+          <div
+            data-track
+            className="flex flex-col group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-[600%] group-data-[mode=camera]/leitura:flex-row"
           >
-            <header data-dim className="border-b border-ink pb-5 text-center">
-              <p className="font-mono text-[11px] text-ink-soft">Instrumento particular · via do consorciado</p>
-              <p className="mt-2 text-[19px] font-bold uppercase tracking-[0.04em] [font-stretch:80%]">
-                Contrato de adesão a grupo de consórcio
-              </p>
-            </header>
-            <div className="mt-6 space-y-[14px] text-justify hyphens-auto">
-              {CLAUSES.map((c) => (
-                <div key={c.n} data-dim data-stop={c.stop ? "" : undefined} className="py-1">
-                  <p className="font-mono text-[11px] font-medium uppercase">
-                    Cláusula {c.n}ª — {c.heading}
+            {/* Plano 0 — abertura */}
+            <article
+              data-panel
+              className="relative w-full shrink-0 overflow-hidden group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-1/6"
+            >
+              <div className="mx-auto grid h-full max-w-[1680px] content-center gap-10 px-4 pb-16 pt-14 sm:px-8 lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-12 lg:pb-12 lg:pt-20">
+                <div className="lg:col-span-6">
+                  <p data-pi data-gsap-pending className="font-mono text-xs text-paper/60 sm:text-sm">
+                    Um contrato de consórcio comum. Onze cláusulas.
                   </p>
-                  <p className="mt-1">
-                    {c.before}
-                    {c.mark && (
+                  <h2
+                    id="leitura-titulo"
+                    data-pi
+                    data-gsap-pending
+                    className="font-display mt-4 text-[clamp(2.7rem,11.5vw,4.4rem)] leading-[0.88] lg:text-[clamp(3.6rem,6.4vw,8rem)]"
+                  >
+                    Quatro delas <span className="bg-marker px-[0.06em] text-ink">pesam</span> no seu bolso.
+                  </h2>
+                  <p
+                    data-pi
+                    data-gsap-pending
+                    className="mt-8 hidden items-center gap-3 font-mono text-xs text-paper/70 sm:text-sm group-data-[mode=camera]/leitura:flex"
+                  >
+                    Role para ler, cláusula por cláusula
+                    <span data-nudge aria-hidden className="inline-block">→</span>
+                  </p>
+                </div>
+                {/* A letra miúda: o contrato inteiro, pequeno de propósito */}
+                <div
+                  data-pi
+                  data-gsap-pending
+                  aria-hidden
+                  className="relative max-h-[34svh] overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)] lg:col-span-5 lg:col-start-8 lg:max-h-[64svh]"
+                >
+                  <div className="columns-2 gap-5 text-justify font-mono text-[8.5px] leading-[1.55] text-paper/40 lg:gap-6 lg:text-[9.5px]">
+                    {CLAUSES.map((c) => (
+                      <p key={c.n} className="mb-2.5">
+                        <span className="text-paper/70">
+                          CLÁUSULA {ORD[c.n - 1]} — {c.heading.toUpperCase()}.{" "}
+                        </span>
+                        {c.before}
+                        {c.mark && (
+                          <span className="text-paper underline decoration-marker decoration-2 underline-offset-2">
+                            {c.mark}
+                          </span>
+                        )}
+                        {c.after}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Planos 1–4 — as cláusulas */}
+            {STOPS.map((c, i) => (
+              <article
+                key={c.n}
+                data-panel
+                aria-label={`Cláusula ${c.n}: ${c.stop!.title}`}
+                className="relative w-full shrink-0 overflow-hidden border-t border-paper/10 group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-1/6 group-data-[mode=camera]/leitura:border-t-0"
+              >
+                {/* numeral gigante ao fundo (camada de profundidade) */}
+                <span
+                  data-depth
+                  aria-hidden
+                  className="font-display pointer-events-none absolute -bottom-[0.16em] -right-[0.03em] select-none text-[64vw] leading-none text-paper/[0.05] lg:text-[40vw]"
+                >
+                  {ORD[c.n - 1]}
+                </span>
+
+                <div className="relative mx-auto grid h-full max-w-[1680px] content-center gap-8 px-4 pb-20 pt-16 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:pb-12 lg:pt-20">
+                  <div className="lg:col-span-7">
+                    <p data-pi data-gsap-pending className="flex items-baseline gap-3 font-mono text-xs text-paper/60">
+                      <span className="tabular-nums text-marker">{String(i + 1).padStart(2, "0")}</span>
+                      Cláusula {ORD[c.n - 1]} — {c.heading}
+                    </p>
+                    {/* a letra miúda */}
+                    <p
+                      data-pi
+                      data-gsap-pending
+                      className="mt-4 max-w-[62ch] font-mono text-[10.5px] leading-[1.6] text-paper/45 sm:text-xs lg:mt-5"
+                    >
+                      {c.before}
+                      <span className="text-paper/85">{c.mark}</span>
+                      {c.after}
+                    </p>
+                    {/* …em letra graúda */}
+                    <blockquote
+                      data-pi
+                      data-gsap-pending
+                      className="font-display mt-6 text-[clamp(1.85rem,8.2vw,3rem)] leading-[1.04] lg:mt-10 lg:text-[clamp(2.6rem,4.2vw,5.2rem)] lg:leading-[1]"
+                    >
+                      “
                       <span
                         data-mark
-                        className="bg-[linear-gradient(transparent_52%,var(--color-marker)_52%,var(--color-marker)_94%,transparent_94%)] bg-no-repeat [background-size:0%_100%]"
+                        className="bg-[linear-gradient(var(--color-marker),var(--color-marker))] bg-no-repeat px-[0.06em] text-ink [-webkit-box-decoration-break:clone] [background-size:100%_100%] [box-decoration-break:clone]"
                       >
                         {c.mark}
                       </span>
-                    )}
-                    {c.after}
+                      ”
+                    </blockquote>
+                  </div>
+
+                  <div className="lg:col-span-4 lg:col-start-9 lg:self-end">
+                    <span data-pi data-gsap-pending className="block h-px w-full bg-paper/30" />
+                    <h3
+                      data-pi
+                      data-gsap-pending
+                      className="font-display mt-4 text-[1.9rem] leading-[0.92] lg:mt-5 lg:text-[clamp(2.2rem,2.9vw,3.4rem)]"
+                    >
+                      {c.stop!.title}
+                    </h3>
+                    <p data-pi data-gsap-pending className="mt-3 text-[15px] leading-snug text-paper/90 lg:mt-4 lg:text-lg">
+                      {c.stop!.body}
+                    </p>
+                    <p data-pi data-gsap-pending className="mt-3 font-mono text-[11px] text-paper/55 lg:mt-4 lg:text-xs">
+                      ↳ {c.stop!.ref}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+
+            {/* Plano 5 — fecho */}
+            <article
+              data-panel
+              className="relative w-full shrink-0 overflow-hidden border-t border-paper/10 group-data-[mode=camera]/leitura:h-full group-data-[mode=camera]/leitura:w-1/6 group-data-[mode=camera]/leitura:border-t-0"
+            >
+              <div className="mx-auto grid h-full max-w-[1680px] content-center gap-10 px-4 pb-20 pt-16 sm:px-8 lg:grid-cols-12 lg:gap-12 lg:px-12 lg:pb-12 lg:pt-20">
+                <div className="lg:col-span-7">
+                  <p data-pi data-gsap-pending className="font-mono text-xs text-paper/60 sm:text-sm">
+                    Quatro marcações em um contrato padrão.
+                  </p>
+                  <p
+                    data-pi
+                    data-gsap-pending
+                    className="font-display mt-4 text-[clamp(2.7rem,11.5vw,4.4rem)] leading-[0.88] lg:text-[clamp(3.6rem,6.4vw,8rem)]"
+                  >
+                    Quantas estão <span className="whitespace-nowrap bg-marker px-[0.06em] text-ink">no seu?</span>
                   </p>
                 </div>
-              ))}
-            </div>
-            <footer data-dim className="mt-14 grid grid-cols-2 gap-12 font-mono text-[11px] text-ink-soft">
-              <div>
-                <div className="h-px bg-ink" />
-                <p className="mt-2">CONSORCIADO</p>
+                <div className="lg:col-span-4 lg:col-start-9">
+                  <ul className="space-y-3 font-mono text-xs text-paper/80 sm:text-sm">
+                    {STOPS.map((c) => (
+                      <li key={c.n} data-pi data-gsap-pending className="flex items-center gap-3 border-b border-paper/15 pb-3">
+                        <span aria-hidden className="grid size-4 place-items-center border border-paper/70 text-[11px] leading-none text-marker">
+                          ×
+                        </span>
+                        {c.stop!.title}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    data-pi
+                    data-gsap-pending
+                    href="#contato"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      scrollTo("#contato");
+                    }}
+                    className="group mt-8 flex items-stretch bg-paper text-ink outline-offset-4 focus-visible:outline-2 focus-visible:outline-paper"
+                  >
+                    <span className="flex-1 px-5 py-3.5 text-[15px] font-semibold [font-stretch:88%]">
+                      Enviar meu contrato para análise
+                    </span>
+                    <span className="grid w-14 place-items-center border-l border-ink/15 transition-colors group-hover:bg-marker">
+                      →
+                    </span>
+                  </a>
+                </div>
               </div>
-              <div>
-                <div className="h-px bg-ink" />
-                <p className="mt-2">ADMINISTRADORA</p>
-              </div>
-            </footer>
-          </article>
-        </div>
-
-        {/* Vinheta de profundidade */}
-        <div
-          data-vignette
-          aria-hidden
-          className="pointer-events-none invisible absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_38%_50%,transparent_35%,rgba(0,0,0,0.6)_100%)]"
-        />
-
-        {/* ---------- Anotações de margem ---------- */}
-        <ol
-          className="relative z-10 mx-auto grid max-w-[1680px] gap-x-10 gap-y-12 px-4 py-14 sm:grid-cols-2 sm:px-8 lg:px-12 group-data-[mode=camera]/leitura:pointer-events-none group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-0 group-data-[mode=camera]/leitura:block group-data-[mode=camera]/leitura:p-0"
-        >
-          {STOPS.map((c, i) => (
-            <li
-              key={c.n}
-              data-note
-              className="group-data-[mode=camera]/leitura:invisible group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:bottom-0 group-data-[mode=camera]/leitura:bg-ink-2 group-data-[mode=camera]/leitura:px-4 group-data-[mode=camera]/leitura:pb-7 group-data-[mode=camera]/leitura:pt-5 group-data-[mode=camera]/leitura:shadow-[0_-24px_48px_-8px_rgba(0,0,0,0.6)] lg:group-data-[mode=camera]/leitura:inset-x-auto lg:group-data-[mode=camera]/leitura:bottom-auto lg:group-data-[mode=camera]/leitura:right-12 lg:group-data-[mode=camera]/leitura:top-1/2 lg:group-data-[mode=camera]/leitura:w-[min(30vw,26rem)] lg:group-data-[mode=camera]/leitura:-translate-y-1/2 lg:group-data-[mode=camera]/leitura:bg-transparent lg:group-data-[mode=camera]/leitura:p-0 lg:group-data-[mode=camera]/leitura:shadow-none"
-            >
-              <div data-note-item className="flex items-baseline gap-3 font-mono text-xs text-paper/60">
-                <span className="tabular-nums text-marker">{String(i + 1).padStart(2, "0")}</span>
-                <span className="h-px flex-1 bg-paper/25" />
-                <span>Cláusula {c.n}ª</span>
-              </div>
-              <h3
-                data-note-item
-                className="font-display mt-3 text-[2.1rem] leading-[0.92] lg:mt-5 lg:text-[clamp(2.4rem,3.4vw,3.6rem)]"
-              >
-                {c.stop!.title}
-              </h3>
-              <blockquote
-                data-note-item
-                className="mt-3 border-l-2 border-marker pl-3 text-sm italic leading-snug text-paper/75 lg:mt-5 lg:text-[15px]"
-              >
-                “{c.mark}”
-              </blockquote>
-              <p data-note-item className="mt-3 text-base leading-snug text-paper/90 lg:mt-5 lg:text-lg">
-                {c.stop!.body}
-              </p>
-              <p data-note-item className="mt-3 font-mono text-[11px] text-paper/55 lg:mt-5 lg:text-xs">
-                ↳ {c.stop!.ref}
-              </p>
-            </li>
-          ))}
-        </ol>
-
-        {/* ---------- Fecho (após o recuo da câmera) ---------- */}
-        <div
-          data-outro
-          className="hidden group-data-[mode=camera]/leitura:pointer-events-none group-data-[mode=camera]/leitura:absolute group-data-[mode=camera]/leitura:inset-x-0 group-data-[mode=camera]/leitura:top-[5.5rem] group-data-[mode=camera]/leitura:z-10 group-data-[mode=camera]/leitura:block lg:group-data-[mode=camera]/leitura:top-1/2 lg:group-data-[mode=camera]/leitura:-translate-y-1/2"
-        >
-          <div className="mx-auto max-w-[1680px] px-4 sm:px-8 lg:px-12">
-            <div className="lg:max-w-[46%]">
-              <p data-outro-item className="font-mono text-xs text-paper/60 sm:text-sm">
-                Quatro marcações em um contrato padrão.
-              </p>
-              <p
-                data-outro-item
-                className="font-display mt-4 text-[clamp(2.6rem,11vw,4rem)] leading-[0.88] lg:text-[clamp(3.5rem,6.2vw,7.5rem)]"
-              >
-                Quantas estão <span className="whitespace-nowrap bg-marker px-[0.06em] text-ink">no seu?</span>
-              </p>
-            </div>
+            </article>
           </div>
         </div>
       </div>

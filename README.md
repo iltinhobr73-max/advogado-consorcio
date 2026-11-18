@@ -25,6 +25,6 @@ npm run dev
 
 1. **Autorização do escritório.** Os dados em `src/content/escritorio.ts` (nome, OAB, contatos, depoimentos) foram preenchidos a partir do site público atual, como proposta.
 2. **Envio do formulário.** Defina `CONTACT_WEBHOOK_URL` (webhook de automação, CRM ou serviço de e-mail que aceite `multipart/form-data`). Sem ela, o formulário avisa que o envio não está ativo.
-3. **Foto do advogado.** Coloque `public/media/advogado.jpg` e mude `temFoto` para `true` em `escritorio.ts`.
+3. **Foto e logo em alta.** `public/media/advogado.jpg` (208×337) e o monograma vieram de arquivos pequenos. Com versões maiores, basta substituir a foto; para o logo, o ideal é o arquivo vetorial (SVG/PDF) do escritório.
 4. **Vídeo do hero.** `public/media/contrato.mp4` é provisório (gerado).
 5. **Revisão jurídica** das referências legais (`src/content/contrato.ts`) e dos textos (`escritorio.ts`).

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useScrollTo } from "@/components/providers/SmoothScroll";
 import { ESCRITORIO } from "@/content/escritorio";
+import { Monograma } from "@/components/doc/Logo";
 
 /**
  * Conceito: "letras miúdas".
@@ -214,7 +215,8 @@ export function Hero() {
         {/* ---------- Cabeçalho de documento ---------- */}
         <div className="font-mono text-[11px] leading-none text-ink-soft sm:text-xs">
           <div className="flex items-baseline justify-between gap-4">
-            <span data-hero-meta data-gsap-pending>
+            <span data-hero-meta data-gsap-pending className="flex items-center gap-2">
+              <Monograma className="h-[1.6em] text-ink" />
               {ESCRITORIO.sigla} · consórcios
             </span>
             <span data-hero-meta data-gsap-pending className="hidden sm:inline">

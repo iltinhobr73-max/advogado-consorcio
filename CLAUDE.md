@@ -30,7 +30,7 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/lib/gsap.ts` — registra os plugins (ScrollTrigger, useGSAP). Importe `gsap`, `ScrollTrigger` e `useGSAP` sempre daqui.
 - `src/components/providers/SmoothScroll.tsx` — instância única do Lenis + `useScrollTo()` para rolar até âncoras.
 - `src/components/hero/Hero.tsx` — hero "letras miúdas": vídeo do contrato, título tarjado que vira marca-texto, "(continua na próxima página)" como scroll indicator.
-- `src/components/leitura/LeituraGuiada.tsx` — seção com pin: "câmera" percorre um contrato e para em 4 cláusulas. Câmera = timeline com scrub suavizado; anotações = timelines em tempo real (stagger 0.2, power3.out) disparadas pela posição da câmera.
+- `src/components/leitura/LeituraGuiada.tsx` — fl. 02, "a letra miúda em letra graúda": pin com travelling horizontal por 6 planos (abertura, 4 cláusulas, fecho). Câmera = timeline com scrub (x do trilho + dolly de escala + numeral gigante em outra velocidade para profundidade); conteúdo de cada plano = timeline em tempo real (stagger 0.2, power3.out) disparada na chegada. Trilho `w-[600%]` com planos `w-1/6` — mudou o nº de planos, ajuste as duas classes.
 - `src/content/contrato.ts` — texto do contrato fictício e das anotações (paradas da câmera).
 - `src/content/escritorio.ts` — **todos os dados do escritório** (nome, OAB, contatos, pedidos, qualificação, depoimentos, perguntas, sumário). Altere aqui, não nos componentes.
 - `src/components/doc/Folha.tsx` — `FolhaHeader` (cabeçalho mono + régua) e `revealFolha()` (entrada padrão: régua expo.inOut, `[data-item]` com stagger 0.2 power3.out, `[data-draw]` linhas traçadas). Use em toda folha nova.
@@ -38,6 +38,7 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/components/indice/Indice.tsx` — "Sumário" flutuante (índice com folhas, trava o scroll via `useScrollLock`) + aba de WhatsApp. Renderizado DEPOIS das seções (precisa do pin da leitura). No mobile some durante a Leitura guiada.
 - `src/components/encaminhamento/Encaminhamento.tsx` — fl. 07: termo de encaminhamento (formulário), carimbo "RECEBIDO" e fecho do documento.
 - `src/app/api/contato/route.ts` — recebe o formulário e repassa para `CONTACT_WEBHOOK_URL`. Sem essa variável responde 503 `not_configured` e o site avisa que o envio não está ativo (nunca finge sucesso).
+- `public/media/advogado.jpg` — foto do advogado (208×337, baixa resolução: exibida pequena e em P&B). `logo-monograma.png` — monograma extraído do logo original como máscara alfa; use sempre via `<Monograma>`/`<Assinatura>` (`src/components/doc/Logo.tsx`), que herdam a cor do texto. `src/app/icon.png` gerado a partir dele.
 - `public/media/contrato.mp4` / `contrato-poster.jpg` — contrato de consórcio fictício rolando em loop (gerado). Pode ser trocado por filmagem real de um contrato.
 
 ## Direção de arte
@@ -45,7 +46,7 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 O site é um **documento**, não um template de advocacia. Evitar o padrão genérico: fundo escuro, serifa clássica, dourado, botões em pílula, microcopy em caixa alta espaçada, "role" com linha, ícones de balança/martelo, gradientes radiais.
 
 - Paleta: papel (`paper`), tinta (`ink`) e marca-texto (`marker`). O amarelo só aparece onde algo é "destacado". Contraste alto: textos secundários em `ink-soft` (não mais claros que isso em texto corrido); amarelo vivo, usado como bloco (`bg-marker text-ink`) em títulos sobre fundo escuro.
-- A Leitura guiada acontece numa **mesa escura** (`bg-ink`, luz radial): o contrato é o único papel claro em cena, e em cada parada o resto do contrato apaga (opacity 0.14) para a cláusula da vez ficar em foco. Texto claro nunca pode cair sobre o papel — o enquadramento termina antes da coluna das notas.
+- A Leitura guiada acontece numa **mesa escura** (`bg-ink`, luz radial): é a única folha escura, para dar ritmo à página. O trecho abusivo de cada cláusula aparece em tipografia gigante e o marca-texto o atravessa (o texto passa de papel para tinta junto).
 - Tipografia: Archivo condensado e pesado (`.font-display`) para display; IBM Plex Mono para notas de margem, numeração, metadados e notas de rodapé.
 - Vocabulário visual de contrato: tarjas, marca-texto, notas de rodapé (¹), numeração de linhas, "fl. 01", régua fina, cantos retos.
 - Cada seção deve ter uma ideia ligada ao assunto (consórcio/contrato), não só um layout.
@@ -54,6 +55,7 @@ O site é um **documento**, não um template de advocacia. Evitar o padrão gen�
 
 ## Armadilhas conhecidas
 
+- Tailwind só gera classes escritas por extenso no código: nunca monte `group-data-[...]:classe` com template string/variável.
 - Tailwind v4: `scale-*`, `rotate-*` e `translate-*` usam as propriedades CSS `scale`/`rotate`/`translate`, que se SOMAM ao `transform` do GSAP. Em elemento animado pelo GSAP, não usar essas classes — defina o estado inicial com `gsap.set`.
 - GSAP não interpola `var(--cor)`: use o valor hex.
 - **Pin + Lenis: nunca usar `anticipatePin`.** Ele prevê o pin pela velocidade do scroll nativo, mas aqui o `ScrollTrigger.update` vem do Lenis; em flicks no celular o palco saltava ~110px.

@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { FolhaHeader, revealFolha } from "@/components/doc/Folha";
+import { Monograma } from "@/components/doc/Logo";
 import { ESCRITORIO, QUALIFICACAO, WHATSAPP_URL } from "@/content/escritorio";
 
 /**
@@ -59,7 +60,7 @@ export function Qualificacao() {
 
         <div className="mt-14 grid items-start gap-14 lg:mt-20 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-24">
           {/* Foto 3×4 com clipe */}
-          <figure data-foto data-gsap-pending className="relative mx-auto w-[min(78%,20rem)] lg:mx-0 lg:w-full">
+          <figure data-foto data-gsap-pending className="relative mx-auto w-[min(74%,17rem)] lg:mx-0 lg:w-[19rem]">
             <svg
               aria-hidden
               viewBox="0 0 24 64"
@@ -77,7 +78,7 @@ export function Qualificacao() {
                   <img
                     src="/media/advogado.jpg"
                     alt={`Foto de ${ESCRITORIO.advogado}`}
-                    className="h-full w-full object-cover grayscale"
+                    className="h-full w-full object-cover object-[50%_18%] contrast-[1.08] grayscale"
                   />
                 ) : (
                   <div className="grid h-full w-full place-items-center">
@@ -89,7 +90,7 @@ export function Qualificacao() {
                 )}
               </div>
               <figcaption className="absolute bottom-4 left-3 right-3 flex justify-between font-mono text-[10px] text-ink-soft">
-                <span>{ESCRITORIO.sigla}</span>
+                <span className="flex items-center gap-1.5"><Monograma className="h-3.5" />{ESCRITORIO.sigla}</span>
                 <span>{ESCRITORIO.cidade}</span>
               </figcaption>
             </div>

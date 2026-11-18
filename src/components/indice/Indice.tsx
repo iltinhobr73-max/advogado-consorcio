@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { useScrollLock, useScrollTo } from "@/components/providers/SmoothScroll";
 import { ESCRITORIO, SUMARIO, WHATSAPP_URL } from "@/content/escritorio";
+import { Assinatura } from "@/components/doc/Logo";
 
 /**
  * Navegação flutuante: "Sumário" (índice do documento, com as folhas) e a
@@ -167,7 +168,7 @@ export function Indice() {
           <div className="font-mono text-[11px] leading-none text-ink-soft sm:text-xs">
             <div className="flex items-baseline justify-between gap-4">
               <span>Sumário</span>
-              <span className="hidden sm:inline">{ESCRITORIO.nome}</span>
+              <Assinatura className="hidden text-[13px] text-ink sm:inline-flex" />
               <button
                 type="button"
                 onClick={() => fechar()}
