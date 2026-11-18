@@ -28,9 +28,9 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 ## Onde fica cada coisa
 
 - `src/lib/gsap.ts` — registra os plugins (ScrollTrigger, useGSAP). Importe `gsap`, `ScrollTrigger` e `useGSAP` sempre daqui.
-- `src/components/providers/SmoothScroll.tsx` — instância única do Lenis + `useScrollTo()` para rolar até âncoras.
+- `src/components/providers/SmoothScroll.tsx` — instância única do Lenis + `useScrollTo()` (âncoras; aceita `duration`, `ease` power3/expo, `lock`, `onComplete`, `interno`), `useScrollLock()` e `useNavegacao()` (true enquanto o Lenis navega até uma âncora; dispara o evento `FIM_NAVEGACAO` ao terminar). Âncora de seção fixada mira o início do pin (+2px).
 - `src/components/hero/Hero.tsx` — hero: vídeo de luz de janela (persiana) nas cores da marca; o título aparece primeiro só como CONTORNO dourado (tensão) e depois é preenchido linha a linha (clip-path com folga para acentos/pernas); dois CTAs (análise e WhatsApp); indicador "role" que some ao descer.
-- `src/components/leitura/LeituraGuiada.tsx` — fl. 02, pilha de cláusulas: pin; cada cláusula chega como uma folha que desliza de baixo e pousa (inclinada) sobre a anterior; as de baixo recuam e escurecem (`[data-shade]`), a câmera recua enquanto a folha está no ar. À esquerda, índice das 4 cláusulas que acompanha e, no fim, o CTA. Folhas/câmera = scrub; conteúdo de cada folha = tempo real (stagger 0.2, power3.out) na hora em que pousa.
+- `src/components/leitura/LeituraGuiada.tsx` — fl. 02, pilha de cláusulas: pin; cada cláusula chega como uma folha que desliza de baixo e pousa (inclinada) sobre a anterior; as de baixo recuam e escurecem (`[data-shade]`), a câmera recua enquanto a folha está no ar. À esquerda, índice das 4 cláusulas que acompanha e, no fim, o CTA. Folhas/câmera = scrub; conteúdo de cada folha = tempo real (stagger 0.2, power3.out) na hora em que pousa. **Celular: uma passada = uma cláusula** — dentro da seção, `ScrollTrigger.observe` (type touch, preventDefault) lê a direção do gesto e o Lenis (`scrollTo` com `interno: true`) leva até a próxima parada (labels `abertura`, `clausula-N`, `fecho`); nas pontas o gesto devolve a rolagem e sai da seção. Desktop: scrub livre, sem passo-a-passo.
 - `src/content/contrato.ts` — texto do contrato fictício e das anotações (paradas da câmera).
 - `src/content/escritorio.ts` — **todos os dados do escritório** (nome, OAB, contatos, pedidos, qualificação, depoimentos, perguntas, sumário). Altere aqui, não nos componentes.
 - `src/components/doc/Folha.tsx` — `FolhaHeader` (cabeçalho mono + régua) e `revealFolha()` (entrada padrão: régua expo.inOut, `[data-item]` com stagger 0.2 power3.out, `[data-draw]` linhas traçadas). Use em toda folha nova.
@@ -60,6 +60,9 @@ O site é um **documento**, não um template de advocacia. Evitar o padrão gen�
 - **Pin + Lenis: nunca usar `anticipatePin`.** Ele prevê o pin pela velocidade do scroll nativo, mas aqui o `ScrollTrigger.update` vem do Lenis; em flicks no celular o palco saltava ~110px.
 - **Comprimento de pin/scrub em altura estável**: use a altura de um elemento `h-svh` (ex.: `stage.clientHeight`), nunca `window.innerHeight` — no celular ele muda com a barra de endereço e o pin muda de tamanho a cada refresh.
 - `ScrollTrigger.config({ ignoreMobileResize: true })` fica em `src/lib/gsap.ts` (resize só de altura no touch não recalcula triggers).
+- **Snap do ScrollTrigger no celular não serve para "uma passada = um passo"**: compete com a rolagem nativa do dedo e é interrompido em passadas longas. Use o padrão do passo-a-passo da Leitura guiada (Observer + Lenis).
+- Qualquer componente que reage a entrar/sair de uma seção deve: (1) ignorar a entrada durante uma navegação (`useNavegacao()`); (2) esperar um quadro e confirmar `isActive` antes de agir — saltos por cima da seção (recarregar a página, "localizar") disparam entrar+sair juntos; (3) nunca prender o usuário — nas pontas, devolver a rolagem.
+- Labels de encaixe/parada ficam DENTRO do pin, nunca no início/fim exato (ali a seção ainda não conta como ativa).
 - Elementos com fundo opaco empilhados (ex.: notas no mobile) devem ter a visibilidade controlada pela própria timeline, não só os filhos.
 
 ## Conteúdo e OAB

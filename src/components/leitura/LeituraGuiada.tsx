@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
-import { useScrollTo } from "@/components/providers/SmoothScroll";
+import { FIM_NAVEGACAO, useNavegacao, useScrollTo } from "@/components/providers/SmoothScroll";
 import { STOPS } from "@/content/contrato";
 
 /**
@@ -32,6 +32,7 @@ const ORD = ["1ª", "2ª", "3ª", "4ª", "5ª", "6ª", "7ª", "8ª", "9ª", "10�
 export function LeituraGuiada() {
   const root = useRef<HTMLElement>(null);
   const scrollTo = useScrollTo();
+  const navegando = useNavegacao();
 
   useGSAP(
     () => {
@@ -145,6 +146,11 @@ export function LeituraGuiada() {
           gsap.set(camera, { scale: 1, transformOrigin: "50% 60%" });
 
           const landings: number[] = [];
+          // Paradas (labels) em progresso 0–1: usadas pelo passo-a-passo do celular.
+          const labelProgress = (): number[] =>
+            Object.values(tl.labels)
+              .sort((a, b) => a - b)
+              .map((t) => t / tl.duration());
           const tl = gsap.timeline({
             defaults: { ease: "power3.inOut" },
             onUpdate() {
@@ -162,14 +168,18 @@ export function LeituraGuiada() {
               trigger: section,
               start: "top top",
               // altura do palco (100svh): estável no celular. Sem anticipatePin (ver CLAUDE.md).
-              end: () => "+=" + stage.clientHeight * (desktop ? 5 : 4.6),
+              // Celular: pin mais curto, para cada cláusula caber numa passada de dedo.
+              end: () => "+=" + stage.clientHeight * (desktop ? 5 : 2.9),
               pin: true,
-              scrub: 1.1,
+              scrub: desktop ? 1.1 : 0.5,
               invalidateOnRefresh: true,
             },
           });
 
+          // As paradas das pontas ficam DENTRO da seção (não no início/fim exato do
+          // pin): encaixar ali nunca conta como "sair e entrar de novo".
           tl.to({}, { duration: T_OPEN });
+          tl.addLabel("abertura", T_OPEN * 0.5);
           cards.forEach((card, i) => {
             const at = tl.duration();
             // a folha desliza e pousa, girando até o ângulo final
@@ -184,13 +194,102 @@ export function LeituraGuiada() {
             tl.to(camera, { scale: 0.95, duration: T_DROP / 2, ease: "power3.out" }, at);
             tl.to(camera, { scale: 1, duration: T_DROP / 2, ease: "power3.in" }, at + T_DROP / 2);
             landings.push(at + T_DROP * 0.85);
+            // ponto de encaixe: folha já pousada, um respiro antes da próxima
+            tl.addLabel(`clausula-${i + 1}`, at + T_DROP + T_HOLD * 0.35);
             tl.to({}, { duration: T_HOLD });
           });
           // fecho: a pilha se ajeita e se afasta um pouco
           tl.to(camera, { scale: 0.92, duration: T_END, ease: "power3.inOut" });
+          tl.addLabel("fecho", tl.duration() - T_END * 0.25);
+
+          /* ---------- Celular: uma passada = uma cláusula ---------- */
+          // Dentro da seção, o gesto vira comando: o Observer do GSAP lê a direção
+          // da passada (e bloqueia a rolagem livre) e o Lenis leva a página até a
+          // próxima parada. Nas pontas, o gesto devolve a rolagem e você sai.
+          let stepper: ReturnType<typeof ScrollTrigger.observe> | null = null;
+          if (!desktop) {
+            const st = tl.scrollTrigger!;
+            let parada = 0;
+            let andando = false;
+            const posicao = (i: number) => st.start + labelProgress()[i] * (st.end - st.start);
+            const ir = (alvo: number, aoTerminar?: () => void) => {
+              andando = true;
+              scrollTo(alvo, {
+                duration: 0.9,
+                ease: "power3.inOut",
+                lock: true,
+                interno: true,
+                onComplete: () => {
+                  andando = false;
+                  aoTerminar?.();
+                },
+              });
+            };
+            const passo = (dir: 1 | -1) => {
+              if (andando) return;
+              const n = parada + dir;
+              const total = labelProgress().length;
+              if (n < 0 || n >= total) {
+                // saída: devolve a rolagem livre e sai da seção na direção do gesto
+                stepper?.disable();
+                ir(dir > 0 ? st.end + H() * 0.6 : st.start - H() * 0.6);
+                return;
+              }
+              parada = n;
+              ir(posicao(n));
+            };
+            stepper = ScrollTrigger.observe({
+              target: window,
+              type: "touch",
+              tolerance: 12,
+              preventDefault: true,
+              onUp: () => passo(1), // dedo sobe = avançar
+              onDown: () => passo(-1),
+            });
+            stepper.disable();
+            const maisProxima = () => {
+              const L = labelProgress();
+              return L.reduce((m, v, i) => (Math.abs(v - st.progress) < Math.abs(L[m] - st.progress) ? i : m), 0);
+            };
+            // Navegação (âncora/sumário) atravessa a seção livremente; se ela
+            // terminar AQUI dentro, o passo-a-passo assume da parada mais próxima.
+            const aoFimDaNavegacao = () => {
+              if (!st.isActive) return;
+              parada = maisProxima();
+              stepper?.enable();
+              ir(posicao(parada));
+            };
+            window.addEventListener(FIM_NAVEGACAO, aoFimDaNavegacao);
+            ctx.add(() => () => window.removeEventListener(FIM_NAVEGACAO, aoFimDaNavegacao));
+            ScrollTrigger.create({
+              trigger: section,
+              start: () => st.start,
+              end: () => st.end,
+              // Espera um quadro e só assume se o usuário CONTINUA dentro: um salto
+              // por cima da seção (restauração de scroll, "localizar na página")
+              // dispara entrar+sair juntos e não pode puxar a página de volta.
+              onEnter: () =>
+                requestAnimationFrame(() => {
+                  if (!st.isActive || navegando()) return;
+                  parada = 0;
+                  stepper?.enable();
+                  ir(posicao(0));
+                }),
+              onEnterBack: () =>
+                requestAnimationFrame(() => {
+                  if (!st.isActive || navegando()) return;
+                  parada = labelProgress().length - 1;
+                  stepper?.enable();
+                  ir(posicao(parada));
+                }),
+              onLeave: () => stepper?.disable(),
+              onLeaveBack: () => stepper?.disable(),
+            });
+          }
 
           ScrollTrigger.refresh();
           return () => {
+            stepper?.kill();
             delete section.dataset.mode;
           };
         },
