@@ -217,12 +217,17 @@ export function LeituraGuiada() {
             scrollTrigger: {
               trigger: section,
               start: "top top",
-              end: () => "+=" + window.innerHeight * (desktop ? 6 : 5.2),
+              // Comprimento do pin baseado na altura do palco (100svh), que é
+              // estável no celular — innerHeight muda com a barra de endereço.
+              // No desktop svh === innerHeight, então nada muda lá.
+              end: () => "+=" + stage.clientHeight * (desktop ? 6 : 5.2),
               pin: true,
               // Inércia: a câmera "alcança" o scroll, em vez de grudar nele.
               scrub: 1.1,
               invalidateOnRefresh: true,
-              anticipatePin: 1,
+              // Sem anticipatePin: ele prevê o pin pela velocidade do scroll
+              // nativo, mas aqui quem chama ScrollTrigger.update é o Lenis.
+              // Em flicks no touch, a previsão errava e o palco saltava ~110px.
             },
           });
 
