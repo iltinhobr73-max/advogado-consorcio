@@ -32,6 +32,8 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/components/hero/Hero.tsx` — hero "letras miúdas": vídeo do contrato, título tarjado que vira marca-texto, "(continua na próxima página)" como scroll indicator.
 - `src/components/leitura/LeituraGuiada.tsx` — seção com pin: "câmera" percorre um contrato e para em 4 cláusulas. Câmera = timeline com scrub suavizado; anotações = timelines em tempo real (stagger 0.2, power3.out) disparadas pela posição da câmera.
 - `src/content/contrato.ts` — texto do contrato fictício e das anotações (paradas da câmera).
+- `src/components/encaminhamento/Encaminhamento.tsx` — fl. 03: termo de encaminhamento (formulário), carimbo "RECEBIDO" e fecho do documento.
+- `src/app/api/contato/route.ts` — recebe o formulário e repassa para `CONTACT_WEBHOOK_URL`. Sem essa variável responde 503 `not_configured` e o site avisa que o envio não está ativo (nunca finge sucesso).
 - `public/media/contrato.mp4` / `contrato-poster.jpg` — contrato de consórcio fictício rolando em loop (gerado). Pode ser trocado por filmagem real de um contrato.
 
 ## Direção de arte
