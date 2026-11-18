@@ -24,6 +24,8 @@ Stack: Next.js (App Router, `src/`), TypeScript, Tailwind CSS v4, GSAP + ScrollT
 - `src/lib/gsap.ts` — registra os plugins (ScrollTrigger, useGSAP). Importe `gsap`, `ScrollTrigger` e `useGSAP` sempre daqui.
 - `src/components/providers/SmoothScroll.tsx` — instância única do Lenis + `useScrollTo()` para rolar até âncoras.
 - `src/components/hero/Hero.tsx` — hero "letras miúdas": vídeo do contrato, título tarjado que vira marca-texto, "(continua na próxima página)" como scroll indicator.
+- `src/components/leitura/LeituraGuiada.tsx` — seção com pin: "câmera" percorre um contrato e para em 4 cláusulas. Câmera = timeline com scrub suavizado; anotações = timelines em tempo real (stagger 0.2, power3.out) disparadas pela posição da câmera.
+- `src/content/contrato.ts` — texto do contrato fictício e das anotações (paradas da câmera).
 - `public/media/contrato.mp4` / `contrato-poster.jpg` — contrato de consórcio fictício rolando em loop (gerado). Pode ser trocado por filmagem real de um contrato.
 
 ## Direção de arte
@@ -34,6 +36,13 @@ O site é um **documento**, não um template de advocacia. Evitar o padrão gen�
 - Tipografia: Archivo condensado e pesado (`.font-display`) para display; IBM Plex Mono para notas de margem, numeração, metadados e notas de rodapé.
 - Vocabulário visual de contrato: tarjas, marca-texto, notas de rodapé (¹), numeração de linhas, "fl. 01", régua fina, cantos retos.
 - Cada seção deve ter uma ideia ligada ao assunto (consórcio/contrato), não só um layout.
+- Cabeçalho de documento em cada seção (mono, régua fina) com numeração de folha contínua: hero = fl. 01, leitura guiada = fl. 02, e assim por diante.
+
+## Armadilhas conhecidas
+
+- Tailwind v4: `scale-*`, `rotate-*` e `translate-*` usam as propriedades CSS `scale`/`rotate`/`translate`, que se SOMAM ao `transform` do GSAP. Em elemento animado pelo GSAP, não usar essas classes — defina o estado inicial com `gsap.set`.
+- GSAP não interpola `var(--cor)`: use o valor hex.
+- Elementos com fundo opaco empilhados (ex.: notas no mobile) devem ter a visibilidade controlada pela própria timeline, não só os filhos.
 
 ## Convenções
 

@@ -66,10 +66,11 @@ export function Hero() {
           gsap.set(bars, {
             autoAlpha: 1,
             scaleX: 0,
-            scaleY: 1,
             transformOrigin: "0% 50%",
             backgroundColor: INK,
           });
+          // Tarjas do marca-texto começam com a altura cheia de tarja.
+          gsap.set(markerBars, { top: "0.13em" });
           gsap.set(q("[data-line-no]"), { autoAlpha: 0 });
           gsap.set(q("[data-hero-video]"), { autoAlpha: 0 });
           gsap.set(q("[data-hero-rule]"), { scaleX: 0, transformOrigin: "0% 50%" });
@@ -122,8 +123,7 @@ export function Hero() {
             .to(
               markerBars,
               {
-                scaleY: 0.44,
-                transformOrigin: "50% 100%",
+                top: "0.5em",
                 duration: 0.8,
                 ease: "expo.out",
                 stagger: 0.06,
@@ -243,10 +243,8 @@ export function Hero() {
                             data-bar
                             data-marker={w.marker ? "" : undefined}
                             className={
-                              "pointer-events-none absolute -inset-x-[0.035em] top-[0.13em] bottom-[0.03em] mix-blend-multiply " +
-                              (w.marker
-                                ? "origin-bottom scale-y-[0.44] bg-marker"
-                                : "invisible bg-ink")
+                              "pointer-events-none absolute -inset-x-[0.035em] bottom-[0.03em] mix-blend-multiply " +
+                              (w.marker ? "top-[0.5em] bg-marker" : "invisible top-[0.13em] bg-ink")
                             }
                           />
                         </span>
